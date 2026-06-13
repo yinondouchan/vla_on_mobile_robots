@@ -1,0 +1,198 @@
+solid Photo Open Box
+facet normal 0.0 0.0 -1.0
+  outer loop
+    vertex 6.5 0.0 0.0
+    vertex 0.0 -9.0 0.0
+    vertex 0.0 0.0 0.0
+  endloop
+endfacet
+facet normal 0.0 0.0 -1.0
+  outer loop
+    vertex 0.0 -9.0 0.0
+    vertex 6.5 0.0 0.0
+    vertex 6.5 -9.0 0.0
+  endloop
+endfacet
+facet normal 0.0 0.0 1.0
+  outer loop
+    vertex 0.0 -9.0 5.5
+    vertex 0.25 -8.75 5.5
+    vertex 0.0 0.0 5.5
+  endloop
+endfacet
+facet normal 0.0 0.0 1.0
+  outer loop
+    vertex 0.25 -8.75 5.5
+    vertex 0.0 -9.0 5.5
+    vertex 6.5 -9.0 5.5
+  endloop
+endfacet
+facet normal 0.0 0.0 1.0
+  outer loop
+    vertex 0.25 -8.75 5.5
+    vertex 6.5 -9.0 5.5
+    vertex 6.25 -8.75 5.5
+  endloop
+endfacet
+facet normal 0.0 0.0 1.0
+  outer loop
+    vertex 6.25 -8.75 5.5
+    vertex 6.5 -9.0 5.5
+    vertex 6.25 -0.25 5.5
+  endloop
+endfacet
+facet normal 0.0 0.0 1.0
+  outer loop
+    vertex 0.0 0.0 5.5
+    vertex 0.25 -0.25 5.5
+    vertex 6.5 0.0 5.5
+  endloop
+endfacet
+facet normal 0.0 0.0 1.0
+  outer loop
+    vertex 0.25 -0.25 5.5
+    vertex 0.0 0.0 5.5
+    vertex 0.25 -8.75 5.5
+  endloop
+endfacet
+facet normal 0.0 0.0 1.0
+  outer loop
+    vertex 6.5 0.0 5.5
+    vertex 0.25 -0.25 5.5
+    vertex 6.25 -0.25 5.5
+  endloop
+endfacet
+facet normal 0.0 0.0 1.0
+  outer loop
+    vertex 6.5 0.0 5.5
+    vertex 6.25 -0.25 5.5
+    vertex 6.5 -9.0 5.5
+  endloop
+endfacet
+facet normal -0.0 -1.0 -0.0
+  outer loop
+    vertex 6.5 -9.0 5.5
+    vertex 0.0 -9.0 0.0
+    vertex 6.5 -9.0 0.0
+  endloop
+endfacet
+facet normal -0.0 -1.0 -0.0
+  outer loop
+    vertex 0.0 -9.0 0.0
+    vertex 6.5 -9.0 5.5
+    vertex 0.0 -9.0 5.5
+  endloop
+endfacet
+facet normal -1.0 0.0 0.0
+  outer loop
+    vertex 0.0 0.0 5.5
+    vertex 0.0 -9.0 0.0
+    vertex 0.0 -9.0 5.5
+  endloop
+endfacet
+facet normal -1.0 0.0 0.0
+  outer loop
+    vertex 0.0 -9.0 0.0
+    vertex 0.0 0.0 5.5
+    vertex 0.0 0.0 0.0
+  endloop
+endfacet
+facet normal -0.0 1.0 0.0
+  outer loop
+    vertex 0.0 0.0 5.5
+    vertex 6.5 0.0 0.0
+    vertex 0.0 0.0 0.0
+  endloop
+endfacet
+facet normal -0.0 1.0 0.0
+  outer loop
+    vertex 6.5 0.0 0.0
+    vertex 0.0 0.0 5.5
+    vertex 6.5 0.0 5.5
+  endloop
+endfacet
+facet normal 1.0 0.0 0.0
+  outer loop
+    vertex 6.5 0.0 0.0
+    vertex 6.5 -9.0 5.5
+    vertex 6.5 -9.0 0.0
+  endloop
+endfacet
+facet normal 1.0 0.0 0.0
+  outer loop
+    vertex 6.5 -9.0 5.5
+    vertex 6.5 0.0 0.0
+    vertex 6.5 0.0 5.5
+  endloop
+endfacet
+facet normal 0.0 0.0 1.0
+  outer loop
+    vertex 6.25 -8.75 0.5
+    vertex 0.25 -0.25 0.5
+    vertex 0.25 -8.75 0.5
+  endloop
+endfacet
+facet normal 0.0 0.0 1.0
+  outer loop
+    vertex 0.25 -0.25 0.5
+    vertex 6.25 -8.75 0.5
+    vertex 6.25 -0.25 0.5
+  endloop
+endfacet
+facet normal -0.0 -1.0 -0.0
+  outer loop
+    vertex 6.25 -0.25 5.5
+    vertex 0.25 -0.25 0.5
+    vertex 6.25 -0.25 0.5
+  endloop
+endfacet
+facet normal -0.0 -1.0 -0.0
+  outer loop
+    vertex 0.25 -0.25 0.5
+    vertex 6.25 -0.25 5.5
+    vertex 0.25 -0.25 5.5
+  endloop
+endfacet
+facet normal 1.0 0.0 0.0
+  outer loop
+    vertex 0.25 -0.25 0.5
+    vertex 0.25 -8.75 5.5
+    vertex 0.25 -8.75 0.5
+  endloop
+endfacet
+facet normal 1.0 0.0 0.0
+  outer loop
+    vertex 0.25 -8.75 5.5
+    vertex 0.25 -0.25 0.5
+    vertex 0.25 -0.25 5.5
+  endloop
+endfacet
+facet normal -0.0 1.0 -0.0
+  outer loop
+    vertex 0.25 -8.75 5.5
+    vertex 6.25 -8.75 0.5
+    vertex 0.25 -8.75 0.5
+  endloop
+endfacet
+facet normal -0.0 1.0 -0.0
+  outer loop
+    vertex 6.25 -8.75 0.5
+    vertex 0.25 -8.75 5.5
+    vertex 6.25 -8.75 5.5
+  endloop
+endfacet
+facet normal -1.0 0.0 -0.0
+  outer loop
+    vertex 6.25 -0.25 5.5
+    vertex 6.25 -8.75 0.5
+    vertex 6.25 -8.75 5.5
+  endloop
+endfacet
+facet normal -1.0 0.0 -0.0
+  outer loop
+    vertex 6.25 -8.75 0.5
+    vertex 6.25 -0.25 5.5
+    vertex 6.25 -0.25 0.5
+  endloop
+endfacet
+endsolid Photo Open Box

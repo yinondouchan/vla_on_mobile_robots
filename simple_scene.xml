@@ -1,0 +1,65 @@
+<mujoco>
+  <include file="simple_custom_robot.xml"/>
+
+  <option cone="elliptic"/>
+
+  <size njmax="5000" nconmax="5000"/>
+
+  <visual>
+    <map znear="0.001"/>
+  </visual>
+
+  <asset>
+        <texture type="2d" colorspace="sRGB" name="texplane" file="assets/lift_scene/textures/light-gray-floor-tile.png"/>
+        <texture type="cube" colorspace="linear" name="cube_redwood" file="assets/lift_scene/textures/red-wood.png"/>
+        <material name="floorplane" texture="texplane" texuniform="true" texrepeat="2 2" specular="0" shininess="0" reflectance="0.01"/>
+        <material name="cube_redwood_mat" texture="cube_redwood" specular="0.4" shininess="0.1"/>
+  </asset>
+
+  <worldbody>
+    <!-- <geom type="plane" size="3 3 .01" rgba="0.8 0.1 0.1 1"/> -->
+    <geom name="floor" size="3 3 0.125" type="plane" group="1" material="floorplane"/>
+    <light pos="1 1 1.5" dir="-0.19245 -0.19245 -0.96225" type="directional" castshadow="false"/>
+    <camera name="frontview" pos="1.6 0 0.45" quat="0.560842 0.430646 0.430646 0.560842"/>
+    <camera name="birdview" pos="-0.2 0 3" quat="0.707107 0 0 0.707107"/>
+    <camera name="agentview" pos="0.5 0 0.35" quat="0.653098 0.271041 0.271041 0.653098"/>
+    <camera name="sideview" pos="-0.1 4.0 1.8" quat="0.00990507 0.00687796 0.591223 0.806418"/>
+
+    <body name="cube1" pos="0 0 0">
+      <inertial mass="0.02" pos="0 0 0" diaginertia="0.0001 0.0001 0.0001"/>
+      <joint name="cube_joint0" type="free"/>
+      <geom name="cube_g0" size="0.02 0.02 0.02" type="box" rgba="0.5 0 0 1" friction="10.0 0.05 0.005"/>
+      <geom name="cube_g0_vis" size="0.02 0.02 0.02" type="box" contype="0" conaffinity="0" group="1" mass="0" material="cube_redwood_mat"/>
+      <site name="cube1_default_site" pos="0 0 0" size="0.002" rgba="1 0 0 1"/>
+    </body>
+    <body name="cube2" pos="0.2 0 0.04">
+      <inertial mass="0.16" pos="0 0 0" diaginertia="0.0001 0.0001 0.0001"/>
+      <joint name="cube_joint1" type="free"/>
+      <geom name="cube_g1" size="0.04 0.04 0.04" type="box" rgba="0.5 0 0 1" friction="10.0 0.05 0.005"/>
+      <geom name="cube_g1_vis" size="0.04 0.04 0.04" type="box" contype="0" conaffinity="0" group="1" mass="0" material="cube_redwood_mat"/>
+      <site name="cube2_default_site" pos="0 0 0" size="0.002" rgba="1 0 0 1"/>
+    </body>
+    <body name="cube3" pos="0.4 0 0.06">
+      <inertial mass="0.54" pos="0 0 0" diaginertia="0.0001 0.0001 0.0001"/>
+      <joint name="cube_joint2" type="free"/>
+      <geom name="cube_g2" size="0.06 0.06 0.06" type="box" rgba="0.5 0 0 1" friction="10.0 0.05 0.005"/>
+      <geom name="cube_g2_vis" size="0.06 0.06 0.06" type="box" contype="0" conaffinity="0" group="1" mass="0" material="cube_redwood_mat"/>
+      <site name="cube3_default_site" pos="0 0 0" size="0.002" rgba="1 0 0 1"/>
+    </body>
+    <body name="box1" pos="-0.3 1 0">
+      <!-- <inertial mass="0.02" pos="0 0 0" diaginertia="0.0001 0.0001 0.0001"/> -->
+      <!-- <joint name="box1_joint0" type="free"/> -->
+      <geom type="box" size="0.1 0.1 0.01" pos="0 0 0" rgba="0.5 0 0 1" mass="5.0"/>
+    </body>
+    <body name="box2" pos="0 1 0.0">
+      <!-- <inertial mass="0.02" pos="0 0 0" diaginertia="0.0001 0.0001 0.0001"/> -->
+      <!-- <joint name="box2_joint0" type="free"/> -->
+      <geom type="box" size="0.1 0.1 0.01" pos="0 0 0" rgba="0 0.5 0 1" mass="5.0"/>
+    </body>
+    <body name="box3" pos="0.3 1 0.0">
+      <!-- <inertial mass="0.02" pos="0 0 0" diaginertia="0.0001 0.0001 0.0001"/> -->
+      <!-- <joint name="box3_joint0" type="free"/> -->
+      <geom type="box" size="0.1 0.1 0.01" pos="0 0 0" rgba="0.0 0 0.5 1" mass="5.0"/>
+    </body>
+  </worldbody>
+</mujoco>

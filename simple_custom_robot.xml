@@ -1,0 +1,81 @@
+<mujoco model="mobile_robot">
+  <option timestep="0.002" />
+
+  <asset>
+    <mesh file="assets/gear_50.stl" name="gear_50" scale="0.002 0.002 0.002"/>
+    <mesh file="assets/gripper_9g/Claw.stl" name="gripper_claw" scale="0.002 0.002 0.002"/>
+    <mesh file="assets/gripper_9g/Base.stl" name="gripper_base" scale="0.002 0.002 0.002"/>
+    <mesh file="assets/gripper_9g/Connector_Gear.stl" name="connector_gear" scale="0.002 0.002 0.002"/>
+    <mesh file="assets/gripper_9g/Connector.stl" name="connector" scale="0.002 0.002 0.002"/>
+    <texture name="wheel_texture" type="cube" builtin="gradient" rgb1="0.0 0.0 1.0" rgb2="0.0 1.0 1.0" width="256" height="256"/>
+    <material name="wheel_mat" texture="wheel_texture" specular=".2" shininess=".1"/>
+  </asset>
+
+  <worldbody>
+    <!-- Chassis -->
+    <body name="base" pos="0 0 0.1">
+      <freejoint name="base_joint"/>
+      <inertial mass="5.0" pos="-0.1 0 -0.15" diaginertia="0.1 0.1 0.1" />
+      <geom type="box" size="0.2 0.15 0.05" rgba="0.5 0.5 0.5 1" />
+      <!-- Right Wheel -->
+      <body name="right_wheel" pos="0.12 -0.16 -0.05" zaxis="0 1 0">
+        <inertial mass="0.05" pos="0 0 0" diaginertia="0.001 0.001 0.001" />
+        <joint name="right_joint" type="hinge" axis="0 0 1" frictionloss="0.1"/>
+        <geom type="cylinder" size="0.05 0.02" material="wheel_mat" friction="10.0 0.05 0.005"/>
+      </body>
+      <!-- Left Wheel -->
+      <body name="left_wheel" pos="0.12 0.16 -0.05" zaxis="0 1 0">
+        <inertial mass="0.05" pos="0 0 0" diaginertia="0.001 0.001 0.001" />
+        <joint name="left_joint" type="hinge" axis="0 0 1" frictionloss="0.1"/>
+        <geom type="cylinder" size="0.05 0.02" material="wheel_mat" friction="10.0 0.05 0.005"/>
+      </body>
+
+      <!-- Center Ball -->
+      <body name="center_wheel" pos="-0.15 0 -0.05" zaxis="0 1 0">
+        <inertial mass="0.05" pos="0 0 0" diaginertia="0.001 0.001 0.001" />
+        <joint name="center_joint" type="ball" frictionloss="0.1"/>
+        <geom type="sphere" size="0.05" material="wheel_mat" friction="10.0 0.005 0.0005"/>
+      </body>
+
+      <body name="gripper_base" pos="0.2 0.02 -0.06">
+        <inertial mass="0.1" pos="0 0 0" diaginertia="0.1 0.1 0.1" />
+        <joint name="gripper_lift_joint" type="slide" pos="0.1 0 0" range="0 0.15" axis="0 0 1" />
+
+        <!-- <body name="gripper_right_claw" pos="0 -0.06 0" euler="90 6 180">
+          <joint name="gripper_right_claw_joint" type="slide" pos="0.1 0 0" range="0 1.0"/>
+          <geom name="gripper_right_claw_mesh" type="mesh" mesh="gripper_claw" rgba="0.8 0.8 0.2 1" friction="10.0 0.05 0.005"/>
+        </body> -->
+
+        <body name="gripper_right_claw" pos="0.12 -0.025 0" euler="90 0 180">
+          <joint name="gripper_right_claw_joint" type="slide" pos="0.1 0 0" range="0 1.0"/>
+          <geom name="gripper_right_claw" type="box" size="0.1 0.02 0.01" rgba="0.8 0.8 0.2 1" friction="10.0 0.05 0.005"/>
+        </body>
+
+        <!-- <body name="gripper_left_claw" pos="0 0.06 -0.03" euler="-90 6 180">
+          <joint name="gripper_left_claw_joint" type="slide" pos="0.1 0 0" range="0 1.0"/>
+          <geom name="gripper_left_claw_mesh" type="mesh" mesh="gripper_claw" rgba="0.8 0.8 0.2 1" friction="10.0 0.05 0.005"/>
+        </body> -->
+
+        <body name="gripper_left_claw" pos="0.12 0.025 0" euler="-90 0 180">
+          <joint name="gripper_left_claw_joint" type="slide" pos="0.1 0 0" range="0 1.0"/>
+          <geom name="gripper_left_claw" type="box" size="0.1 0.02 0.01" rgba="0.8 0.8 0.2 1" friction="10.0 0.05 0.005"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <!-- Actuators to drive the wheels -->
+  <actuator>
+    <!-- <motor joint="right_joint" name="right_motor" gear="1.5" />
+    <motor joint="left_joint" name="left_motor" gear="1.5" /> -->
+    <!-- <motor joint="right_joint" name="right_motor" gear="3.0" ctrllimited="true" ctrlrange="-0.5 0.5"/>
+    <motor joint="left_joint" name="left_motor" gear="3.0" ctrllimited="true" ctrlrange="-0.5 0.5"/> -->
+    <velocity joint="right_joint" name="right_motor" kv="1.0" ctrllimited="true" ctrlrange="-50.0 50.0"/>
+    <velocity joint="left_joint" name="left_motor" kv="1.0" ctrllimited="true" ctrlrange="-50.0 50.0"/>
+    <!-- <velocity joint="right_joint" name="right_motor" kv="10.0"/>
+    <velocity joint="left_joint" name="left_motor" kv="10.0"/> -->
+    <position joint="gripper_right_claw_joint" name="gripper_right_pos"  kp="500" kv="20.0"/>
+    <position joint="gripper_lift_joint" name="gripper_lift"  kp="1000" kv="40.0"/>
+    <position joint="gripper_left_claw_joint" name="gripper_left_pos" kp="500" kv="20.0"/>
+  </actuator>
+</mujoco>
