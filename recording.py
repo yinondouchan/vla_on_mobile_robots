@@ -52,17 +52,6 @@ def build_features(config: RecorderConfig) -> dict:
     return features
 
 
-def mobile_robot_state(data: mujoco.MjData) -> np.ndarray:
-    """Proprioceptive state for the custom mobile robot (free-base + gripper)."""
-    qpos = data.qpos
-    qw, qx, qy, qz = qpos[3:7]
-    yaw = np.arctan2(2.0 * (qw * qz + qx * qy), 1.0 - 2.0 * (qy * qy + qz * qz))
-    return np.array(
-        [qpos[0], qpos[1], yaw, qpos[12], qpos[13], qpos[14]],
-        dtype=np.float32,
-    )
-
-
 class LeRobotRecorder:
     """Records MuJoCo teleop rollouts into a LeRobot v3 dataset (parquet + mp4)."""
 
