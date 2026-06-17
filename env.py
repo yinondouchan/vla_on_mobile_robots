@@ -124,7 +124,7 @@ class LiftEnv(gym.Env):
         forward = float(action[0]) * MAX_VELOCITY
         turn = float(action[1]) * MAX_VELOCITY * TURN_GAIN
         grip = float(action[2])
-        lift = float(np.clip(action[3], 0.0, MAX_LIFT))
+        lift = float(action[3]) * MAX_LIFT
         self.data.actuator("right_motor").ctrl = forward + turn
         self.data.actuator("left_motor").ctrl = forward - turn
         self.data.actuator("gripper_lift").ctrl = lift
