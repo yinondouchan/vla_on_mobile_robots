@@ -160,6 +160,8 @@ class LiftEnv(gym.Env):
         reset_poses(self.model, self.data, self._rng)
         mujoco.mj_forward(self.model, self.data)
 
+        self.renderer.update_scene(self.data, camera=self.camera_id)
+
         self._elapsed_steps = 0
         observation = self._get_observation()
         info = {"task": options.get("task") if options else None}
