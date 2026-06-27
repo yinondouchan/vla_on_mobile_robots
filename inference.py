@@ -20,20 +20,13 @@ class LerobotInference:
         policy_path: str,
         *,
         dataset_repo_id: str = "YinonDouchan/mobile_robot_lift_v1",
-        task: str = "Pick up the small cube",
         robot_type: str = "custom_mobile_robot",
         grip_threshold: float = 0.5,
     ):
         self.policy_path = policy_path
         self.dataset_repo_id = dataset_repo_id
-        self.task = task
         self.robot_type = robot_type
         self.grip_threshold = grip_threshold
-
-        self.forward = 0.0
-        self.turn = 0.0
-        self.grip = False
-        self.lift = 0.0
 
         policy_cfg = PreTrainedConfig.from_pretrained(policy_path)
         policy_cfg.pretrained_path = policy_path
@@ -58,13 +51,6 @@ class LerobotInference:
         """Reset policy internal state. Call when the environment is reset."""
         if hasattr(self._policy, "reset"):
             self._policy.reset()
-        self.forward = 0.0
-        self.turn = 0.0
-        self.grip = False
-        self.lift = 0.0
-
-    def set_task(self, task: str) -> None:
-        self.task = task
 
     def predict(
         self,
@@ -86,24 +72,8 @@ class LerobotInference:
             preprocessor=self._preprocessor,
             postprocessor=self._postprocessor,
             use_amp=self._use_amp,
-            task=task if task is not None else self.task,
+            task=task,
             robot_type=self.robot_type,
         )
         return action.squeeze(0).detach().cpu().numpy().astype(np.float64)
 
-    def update(
-        self,
-        state: np.ndarray,
-        images: dict[str, np.ndarray],
-        task: str | None = None,
-    ) -> None:
-        """Update control outputs from the policy (drop-in replacement for read_joystick)."""
-        action = self.predict(state=state, images=images, task=task)
-        self.forward = float(action[0])
-        self.turn = float(action[1])
-        self.grip = bool(action[2] >= self.grip_threshold)
-        self.lift = float(action[3])
-
-    def get_action(self) -> np.ndarray:
-        """Return the latest control command in the same format as robot_sim teleop."""
-        return np.array([self.forward, self.turn, self.grip, self.lift], dtype=np.float64)

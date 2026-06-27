@@ -203,7 +203,7 @@ class LiftEnv(gym.Env):
 gym.register(
     id="LiftMobileRobot-v0",
     entry_point="env:LiftEnv",
-    # max_episode_steps=1000,
+    max_episode_steps=1000,
 )
 
 

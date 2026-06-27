@@ -15,6 +15,7 @@ from env import LiftEnv
 
 def main(record: bool = True,
         disable_control: bool = False,
+        compare_policy: bool = False,
         dataset_repo_id="YinonDouchan/mobile_robot_lift_v1",
         local_data_root="data",
         policy_path="YinonDouchan/smolvla_mobile_robot_lift_v1",
@@ -57,7 +58,8 @@ def main(record: bool = True,
     if reset_environment:
         reset_environment = False
         env.reset()
-        current_task = generate_pick_and_place_task()
+        # current_task = generate_pick_and_place_task()
+        current_task = "Lift gripper up and then lift it down"
         print(f"Reset poses. Current task: {current_task}")
     if recorder_start_recording:
         recorder_start_recording = False
@@ -75,6 +77,14 @@ def main(record: bool = True,
         recorder_finalize = False
         lerobot_recorder.finalize()
         print("Finalizing recording")
+
+
+  def handle_policy_events(env, policy):
+    nonlocal recorder_start_recording, recorder_save_episode, recorder_discard_episode, recorder_finalize, reset_environment, current_task
+    if reset_environment:
+        reset_environment = False
+        env.reset()
+        policy.reset()
 
 
   def read_joystick(joystick):
@@ -129,14 +139,14 @@ def main(record: bool = True,
     else:
       joystick = None
       # raise IOError("No joystick found")
-  else:
+  if not record or compare_policy:
     # Initialize the policy
     policy = LerobotInference(
         policy_path=policy_path,
         dataset_repo_id=dataset_repo_id,
-        task=task,
         robot_type="custom_mobile_robot",
     )
+    policy.reset()
 
   obs, _ = env.reset()
   state = obs['observation.state']
@@ -160,12 +170,17 @@ def main(record: bool = True,
             ], dtype=np.float64)
             lerobot_recorder.add_frame(action=action, state=state, images={"sideview": frame})
             handle_recorder_events(env, lerobot_recorder=lerobot_recorder)
+
+            if compare_policy:
+              test_action = policy.predict(state=state, images={"sideview": frame}, task=task)
+              print(test_action)
           else:
-            action = policy.predict(state=state, images={"sideview": frame})
-            forward = action[0]
-            turn = action[1]
-            grip = action[2]
-            lift = action[3]
+            action = policy.predict(state=state, images={"sideview": frame}, task=task)
+            action[0] = np.clip(action[0], -1.0, 1.0)
+            action[1] = np.clip(action[1], -1.0, 1.0)
+            action[2] = np.clip(action[2], 0.0, 1.0)
+            action[3] = np.clip(action[3], 0.0, 1.0)
+            handle_policy_events(env, policy)
 
           input_active = False
 
