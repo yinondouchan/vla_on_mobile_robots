@@ -26,7 +26,8 @@ def mobile_robot_state(data: mujoco.MjData) -> np.ndarray:
     qw, qx, qy, qz = qpos[3:7]
     yaw = np.arctan2(2.0 * (qw * qz + qx * qy), 1.0 - 2.0 * (qy * qy + qz * qz))
     return np.array(
-        [qpos[0], qpos[1], yaw, qpos[12], qpos[13], qpos[14]],
+        # base_x, base_y, base_yaw, lift_state, grip1, grip2
+        [qpos[0], qpos[1], yaw, qpos[13], qpos[14], qpos[15]],
         dtype=np.float32,
     )
 
@@ -120,6 +121,16 @@ class LiftEnv(gym.Env):
             dtype=np.float32,
         )
 
+        self.environment_state_space = spaces.Dict({
+            "qpos": spaces.Box(
+                low=-np.inf, high=np.inf, shape=self.data.qpos.shape, dtype=np.float64
+            ),
+            "qvel": spaces.Box(
+                low=-np.inf, high=np.inf, shape=self.data.qvel.shape, dtype=np.float64
+            )
+        })
+
+
     def _apply_action(self, action: np.ndarray) -> None:
         forward = float(action[0]) * MAX_VELOCITY
         turn = float(action[1]) * MAX_VELOCITY * TURN_GAIN
@@ -141,10 +152,14 @@ class LiftEnv(gym.Env):
             assert self.renderer is not None
             self.renderer.update_scene(self.data, camera=self.camera_id)
             obs[f"observation.images.{self.camera_name}"] = self.renderer.render()
+
         return obs
 
     def _compute_reward(self) -> float:
         return 0.0
+
+    def get_env_state(self) -> dict[str, np.ndarray]:
+        return {"qpos": self.data.qpos.copy(), "qvel": self.data.qvel.copy()}
 
     def reset(
         self,
@@ -157,14 +172,21 @@ class LiftEnv(gym.Env):
             self._rng = np.random.default_rng(seed)
 
         mujoco.mj_resetData(self.model, self.data)
-        reset_poses(self.model, self.data, self._rng)
+        if options is not None and "initial_state" in options and options["initial_state"] is not None:
+            initial_state = options["initial_state"]
+            self.data.qpos[:] = initial_state["qpos"]
+            self.data.qvel[:] = initial_state["qvel"]
+        else:
+            reset_poses(self.model, self.data, self._rng)
+            initial_state = self.get_env_state()
+            
         mujoco.mj_forward(self.model, self.data)
 
         self.renderer.update_scene(self.data, camera=self.camera_id)
 
         self._elapsed_steps = 0
         observation = self._get_observation()
-        info = {"task": options.get("task") if options else None}
+        info = {"task": options.get("task") if options else None, "initial_state": initial_state}
         return observation, info
 
     def step(self, action: Optional[np.ndarray] = None) -> tuple[dict[str, np.ndarray], float, bool, bool, dict]:
@@ -203,7 +225,7 @@ class LiftEnv(gym.Env):
 gym.register(
     id="LiftMobileRobot-v0",
     entry_point="env:LiftEnv",
-    max_episode_steps=1000,
+    # max_episode_steps=10000,
 )
 
 

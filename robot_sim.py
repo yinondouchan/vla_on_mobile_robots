@@ -1,3 +1,4 @@
+from lerobot.envs.factory import make_env
 import mujoco
 import mujoco.viewer
 import time
@@ -6,20 +7,23 @@ import numpy as np
 import pygame
 import os
 import fire
+import gymnasium as gym
 
 from recording import RecorderConfig, LeRobotRecorder
 from inference import LerobotInference
-from tasks import generate_pick_and_place_task
+from tasks import tasks
 from env import LiftEnv
 
 
 def main(record: bool = True,
         disable_control: bool = False,
         compare_policy: bool = False,
+        env_hf_path: str | None = None,
         dataset_repo_id="YinonDouchan/mobile_robot_lift_v1",
         local_data_root="data",
         policy_path="YinonDouchan/smolvla_mobile_robot_lift_v1",
         task="Pick up the small cube",
+        policy_task="Pick up the small cube"
         ):
 
   forward = 0.0
@@ -53,13 +57,14 @@ def main(record: bool = True,
       print("Finalizing recording")
 
 
-  def handle_recorder_events(env, lerobot_recorder):
+  def handle_recorder_events(env, lerobot_recorder, task_fn, task_fn_kwargs=None):
     nonlocal recorder_start_recording, recorder_save_episode, recorder_discard_episode, recorder_finalize, reset_environment, current_task
     if reset_environment:
         reset_environment = False
         env.reset()
-        # current_task = generate_pick_and_place_task()
-        current_task = "Lift gripper up and then lift it down"
+        if task_fn_kwargs is None:
+          task_fn_kwargs = {}
+        current_task = task_fn(**task_fn_kwargs)
         print(f"Reset poses. Current task: {current_task}")
     if recorder_start_recording:
         recorder_start_recording = False
@@ -114,14 +119,19 @@ def main(record: bool = True,
         # elif event.type == pygame.JOYHATMOTION:
         #     print(f"Hat/D-pad {event.hat} moved to {event.value}")
 
-  env = LiftEnv(model_path='simple_scene.xml')
+  env = make_env("YinonDouchan/mobile_robot_lift_env@main", n_envs=1, use_async_envs=False, trust_remote_code=True)['hub_env'][0]
   env.reset()
+
+  env_unwrapped = env.envs[0].unwrapped
+  env_unwrapped.max_episode_steps = float('inf')
+  env_data = env_unwrapped.data
+  env_model = env_unwrapped.model
 
   if record:
     recorder_config = RecorderConfig(
         repo_id=dataset_repo_id,
         root=local_data_root,
-        fps=int(1.0 / env.model.opt.timestep),
+        fps=int(1.0 / env_model.opt.timestep),
         robot_type="custom_mobile_robot",
     )
 
@@ -153,8 +163,8 @@ def main(record: bool = True,
 
 
   # 2. Open the visualizer and run the simulation
-  with mujoco.viewer.launch_passive(env.model, env.data, key_callback=key_callback) as viewer:
-      viewer.cam.fixedcamid = env.camera_id
+  with mujoco.viewer.launch_passive(env_model, env_data, key_callback=key_callback) as viewer:
+      viewer.cam.fixedcamid = env_unwrapped.camera_id
       viewer.cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
 
       while viewer.is_running():
@@ -168,25 +178,28 @@ def main(record: bool = True,
                 grip,
                 lift
             ], dtype=np.float64)
-            lerobot_recorder.add_frame(action=action, state=state, images={"sideview": frame})
-            handle_recorder_events(env, lerobot_recorder=lerobot_recorder)
+            lerobot_recorder.add_frame(action=action, state=state[0], images={"sideview": frame[0]},
+             environment_state=env_unwrapped.get_env_state())
+            handle_recorder_events(env, lerobot_recorder=lerobot_recorder, task_fn=tasks[task])
 
             if compare_policy:
-              test_action = policy.predict(state=state, images={"sideview": frame}, task=task)
+              test_action = policy.predict(state=state, images={"sideview": frame[0]}, task=task)
               print(test_action)
+
+            action = action[None]
           else:
-            action = policy.predict(state=state, images={"sideview": frame}, task=task)
-            action[0] = np.clip(action[0], -1.0, 1.0)
-            action[1] = np.clip(action[1], -1.0, 1.0)
-            action[2] = np.clip(action[2], 0.0, 1.0)
-            action[3] = np.clip(action[3], 0.0, 1.0)
+            action = policy.predict(state=state, images={"sideview": frame[0]}, task=policy_task)
+            # action[0] = np.clip(action[0], -1.0, 1.0)
+            # action[1] = np.clip(action[1], -1.0, 1.0)
+            # action[2] = np.clip(action[2], 0.0, 1.0)
+            # action[3] = np.clip(action[3], 0.0, 1.0)
             handle_policy_events(env, policy)
 
           input_active = False
 
           # Step the simulation forward
           with viewer.lock():
-            obs, _, _, _, _ = env.step(action if not disable_control else None)
+            obs, _, _, _, info = env.step(action if not disable_control else None)
             state = obs['observation.state']
               
           # Render the frame and sync with the viewer

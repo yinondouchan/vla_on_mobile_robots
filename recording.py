@@ -42,6 +42,16 @@ def build_features(config: RecorderConfig) -> dict:
             "shape": (len(config.action_names),),
             "names": list(config.action_names),
         },
+        "environment_state_qpos": {
+            "dtype": "float64",
+            "shape": (37,),
+            "names": [],
+        },
+        "environment_state_qvel": {
+            "dtype": "float64",
+            "shape": (32,),
+            "names": [],
+        },
     }
     for camera_name, (height, width) in config.cameras.items():
         features[f"observation.images.{camera_name}"] = {
@@ -67,7 +77,7 @@ class LeRobotRecorder:
                 self.config.repo_id,
                 root=self.config.root,
                 streaming_encoding=self.config.streaming_encoding,
-                vcodec=self.config.vcodec,
+                vcodec=self.config.vcodec
             )
 
         if self.config.overwrite_root and self.config.root is not None and os.path.exists(self.config.root):
@@ -103,6 +113,7 @@ class LeRobotRecorder:
     def start_recording(self, task: str) -> None:
         self._task = task
         self._recording = True
+        
 
     def stop_recording(self) -> None:
         self._recording = False
@@ -113,6 +124,7 @@ class LeRobotRecorder:
         action: np.ndarray,
         state: np.ndarray,
         images: dict[str, np.ndarray],
+        environment_state: dict[str, np.ndarray] | None = None,
     ) -> None:
         if not self._recording:
             return
@@ -124,6 +136,11 @@ class LeRobotRecorder:
             "action": np.asarray(action, dtype=np.float32),
             "observation.state": np.asarray(state, dtype=np.float32),
         }
+
+        if environment_state is not None:
+            frame["environment_state_qpos"] = environment_state["qpos"]
+            frame["environment_state_qvel"] = environment_state["qvel"]
+
         for camera_name, image in images.items():
             frame[f"observation.images.{camera_name}"] = image
 

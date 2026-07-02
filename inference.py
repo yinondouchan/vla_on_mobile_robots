@@ -31,8 +31,8 @@ class LerobotInference:
         policy_cfg = PreTrainedConfig.from_pretrained(policy_path)
         policy_cfg.pretrained_path = policy_path
 
-        ds_meta = LeRobotDatasetMetadata(dataset_repo_id)
-        self._policy: PreTrainedPolicy = make_policy(policy_cfg, ds_meta=ds_meta)
+        self._ds_meta = LeRobotDatasetMetadata(dataset_repo_id, revision="main")
+        self._policy: PreTrainedPolicy = make_policy(policy_cfg, ds_meta=self._ds_meta)
         self._policy.eval()
 
         self._device = torch.device(policy_cfg.device)
@@ -44,7 +44,7 @@ class LerobotInference:
         self._preprocessor, self._postprocessor = make_pre_post_processors(
             policy_cfg=policy_cfg,
             pretrained_path=policy_path,
-            preprocessor_overrides=preprocessor_overrides,
+            preprocessor_overrides=preprocessor_overrides
         )
 
     def reset(self) -> None:
@@ -75,5 +75,5 @@ class LerobotInference:
             task=task,
             robot_type=self.robot_type,
         )
-        return action.squeeze(0).detach().cpu().numpy().astype(np.float64)
 
+        return action.detach().cpu().numpy().astype(np.float64)

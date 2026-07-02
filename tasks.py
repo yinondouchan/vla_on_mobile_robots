@@ -56,9 +56,25 @@ TASKS = [
 ]
 
 
-def generate_random_task():
+def random_task():
     return TASKS[np.random.randint(len(TASKS))]
 
 
-def generate_pick_and_place_task():
+def pick_and_place():
   return f"Pick up the {random.choice(['small', 'medium', 'large'])} cube and place it on the {random.choice(['red', 'green', 'blue'])} platform"
+
+
+def turn_to_cube():
+  return f"Turn the robot to the {random.choice(['small', 'medium', 'large'])} cube"
+
+
+def turn_right():
+  return f"Turn the robot to the right"
+
+
+tasks = {
+  "pick_and_place": pick_and_place,
+  "turn_to_cube": turn_to_cube,
+  "turn_right": turn_right,
+  "random": random_task
+}
