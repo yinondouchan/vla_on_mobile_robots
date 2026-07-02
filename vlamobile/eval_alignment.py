@@ -7,17 +7,16 @@ import mujoco
 import mujoco.viewer
 from tqdm import tqdm
 
-from env import LiftEnv
-from inference import LerobotInference
+from vlamobile.env import DEFAULT_MODEL_PATH, LiftEnv
+from vlamobile.inference import LerobotInference
 
 
-def plot_alignment(policy_actions, gt_actions, policy_states, gt_states):
+def plot_alignment(policy_actions, gt_actions, gt_states):
     # Convert evaluation history to numpy arrays
     policy_actions = np.array(policy_actions)
-    policy_states = np.array(policy_states)
 
     action_dim = policy_actions.shape[1] if len(policy_actions.shape) > 1 else 1
-    state_dim = policy_states.shape[1] if len(policy_states.shape) > 1 else 1
+    state_dim = gt_states.shape[1] if len(gt_states.shape) > 1 else 1
 
     # Plot policy actions vs ground truth actions for each action dimension
     fig, axs = plt.subplots(action_dim, 1, figsize=(10, 3 * action_dim), sharex=True)
@@ -42,13 +41,12 @@ def plot_alignment(policy_actions, gt_actions, policy_states, gt_states):
         axs = [axs]
 
     for i in range(state_dim):
-        axs[i].plot(policy_states[:, i], label=f'State {i}')
         axs[i].plot(gt_states[:, i], label=f'GT State {i}')
         axs[i].set_xlabel(f'Action {i}')
         axs[i].legend()
         axs[i].grid(True)
 
-    plt.suptitle('Policy States vs Ground Truth States')
+    plt.suptitle('Ground Truth States')
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     plt.show()
@@ -71,7 +69,7 @@ def main(dataset_repo_id, env_hf_path, policy_path):
     gt_states = np.vstack(episode_df["observation.state"])
 
     # env = make_env(env_hf_path, trust_remote_code=True)['hub_env'][0]
-    env = LiftEnv(model_path='simple_scene.xml')
+    env = LiftEnv(model_path=DEFAULT_MODEL_PATH)
     policy = LerobotInference(
         policy_path=policy_path,
         dataset_repo_id=dataset_repo_id,
@@ -145,7 +143,7 @@ def eval_policy_output(dataset_repo_id, policy_path, episode_idx):
         policy_actions.append(action[0])
 
     policy_actions = np.array(policy_actions)
-    plot_alignment(policy_actions, gt_actions, gt_states, gt_states)
+    plot_alignment(policy_actions, gt_actions, gt_states)
 
 if __name__ == "__main__":
     fire.Fire(eval_policy_output)

@@ -1,18 +1,15 @@
 from lerobot.envs.factory import make_env
 import mujoco
 import mujoco.viewer
-import time
 import glfw
 import numpy as np
 import pygame
 import os
 import fire
-import gymnasium as gym
 
-from recording import RecorderConfig, LeRobotRecorder
-from inference import LerobotInference
-from tasks import tasks
-from env import LiftEnv
+from vlamobile.inference import LerobotInference
+from vlamobile.recording import LeRobotRecorder, RecorderConfig
+from vlamobile.tasks import tasks
 
 
 def main(record: bool = True,

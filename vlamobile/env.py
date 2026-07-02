@@ -8,7 +8,16 @@ import mujoco
 import numpy as np
 from gymnasium import spaces
 
-DEFAULT_MODEL_PATH = Path(__file__).parent / "simple_scene.xml"
+def _default_model_path() -> Path:
+    here = Path(__file__).resolve().parent
+    for base in (here.parent, here):
+        path = base / "assets/mobile_robot_lift/scene.xml"
+        if path.exists():
+            return path
+    return here.parent / "assets/mobile_robot_lift/scene.xml"
+
+
+DEFAULT_MODEL_PATH = _default_model_path()
 DEFAULT_CAMERA = "sideview"
 DEFAULT_IMAGE_SIZE = (480, 640)
 
@@ -224,7 +233,7 @@ class LiftEnv(gym.Env):
 
 gym.register(
     id="LiftMobileRobot-v0",
-    entry_point="env:LiftEnv",
+    entry_point="vlamobile.env:LiftEnv",
     # max_episode_steps=10000,
 )
 

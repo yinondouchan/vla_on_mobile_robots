@@ -2,11 +2,6 @@
   <option timestep="0.002" />
 
   <asset>
-    <mesh file="assets/gear_50.stl" name="gear_50" scale="0.002 0.002 0.002"/>
-    <mesh file="assets/gripper_9g/Claw.stl" name="gripper_claw" scale="0.002 0.002 0.002"/>
-    <mesh file="assets/gripper_9g/Base.stl" name="gripper_base" scale="0.002 0.002 0.002"/>
-    <mesh file="assets/gripper_9g/Connector_Gear.stl" name="connector_gear" scale="0.002 0.002 0.002"/>
-    <mesh file="assets/gripper_9g/Connector.stl" name="connector" scale="0.002 0.002 0.002"/>
     <texture name="wheel_texture" type="cube" builtin="gradient" rgb1="0.0 0.0 1.0" rgb2="0.0 1.0 1.0" width="256" height="256"/>
     <material name="wheel_mat" texture="wheel_texture" specular=".2" shininess=".1"/>
   </asset>
