@@ -1,4 +1,4 @@
-# VLA Playground
+# VLA On a Mobile Robot
 
 A MuJoCo simulation playground for training and evaluating vision-language-action (VLA) policies on a custom mobile lift robot. Record demonstrations with a joystick, fine-tune [SmolVLA](https://huggingface.co/lerobot/smolvla_base) via [LeRobot](https://github.com/huggingface/lerobot), and run policies in the interactive simulator.
 
@@ -163,7 +163,9 @@ python -m vlamobile.eval_alignment \
 
 Task strings are natural-language instructions passed to the recorder and policy (see `vlamobile/tasks.py` for generators like `pick_and_place`, `turn_to_cube`, `turn_right`).
 
-## Hugging Face artifacts
+## HuggingFace artifacts
+
+### Environemnts
 
 
 | Artifact    | Repo                                 | Type                |
@@ -171,17 +173,25 @@ Task strings are natural-language instructions passed to the recorder and policy
 | Environment | `YinonDouchan/mobile_robot_lift_env` | model (remote code) |
 
 
+### Datasets and Trained policies
 
-| Dataset Name   | Dataset Repo | Trained Policy Repo | Description |
-| -------------- | --------------- | ---------------- | ------------------------ |
-| Pick and place | `YinonDouchan/smolvla_mobile_robot_lift_v1`         | `YinonDouchan/mobile_robot_lift_v1`                | Pick one of the cubes and put it on one of the platforms |
-| Turn to cube   | `YinonDouchan/smolvla_mobile_robot_lift_dummy_task` | `YinonDouchan/mobile_robot_lift_dummy_task`        | Turn towards one of the cubes                            |
-| Turn right     | `YinonDouchan/mobile_robot_lift_turn_task`          | `YinonDouchan/smolvla_mobile_robot_lift_turn_task` | Turn to the right                                        |
+
+| Dataset Name   | Dataset Repo                                            | Trained Policy Repo                                 | Description                                              |
+| -------------- | ------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------- |
+| Pick and place | `YinonDouchan/smolvla_mobile_robot_lift_pick_and_place` | `YinonDouchan/mobile_robot_lift_pick_and_place`     | Pick one of the cubes and put it on one of the platforms |
+| Turn to cube   | `YinonDouchan/smolvla_mobile_robot_lift_turn_to_cube`   | `YinonDouchan/mobile_robot_lift_turn_to_cube`       | Turn towards one of the cubes                            |
+| Turn right     | `YinonDouchan/mobile_robot_lift_turn_right`             | `YinonDouchan/smolvla_mobile_robot_lift_turn_right` | Turn to the right                                        |
 
 
 ## Development notes
 
 - Scripts under `vlamobile/` use absolute imports (`from vlamobile...`). Run from the repo root with `PYTHONPATH` set, or use `python -m vlamobile.<script>`.
+
+## Research notes
+
+- Suggested improvements to environment:
+  - Make sideview camera closer to robot, cubes and platforms so objects will appear larger in input to VLA
+  - Add first person front view camera to robot
 
 ## TODO
 

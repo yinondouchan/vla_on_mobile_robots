@@ -7,8 +7,9 @@ import mujoco
 import mujoco.viewer
 from tqdm import tqdm
 
-from vlamobile.env import DEFAULT_MODEL_PATH, LiftEnv
+from vlamobile.env import DEFAULT_MODEL_PATH, LiftEnv, DEFAULT_STATE_NAMES
 from vlamobile.inference import LerobotInference
+from vlamobile.recording import DEFAULT_ACTION_NAMES
 
 
 def plot_alignment(policy_actions, gt_actions, gt_states):
@@ -25,9 +26,10 @@ def plot_alignment(policy_actions, gt_actions, gt_states):
         axs = [axs]
 
     for i in range(action_dim):
-        axs[i].plot(policy_actions[:, i], label=f'Action {i}')
-        axs[i].plot(gt_actions[:, i], label=f'GT Action {i}')
-        axs[i].set_xlabel(f'Action {i}')
+        axs[i].plot(policy_actions[:, i], label=f'Policy Action')
+        axs[i].plot(gt_actions[:, i], label=f'GT Action')
+        axs[i].set_title(f'{DEFAULT_ACTION_NAMES[i]}')
+        axs[i].set_xlabel(f'Step')
         axs[i].legend()
         axs[i].grid(True)
 
@@ -41,8 +43,9 @@ def plot_alignment(policy_actions, gt_actions, gt_states):
         axs = [axs]
 
     for i in range(state_dim):
-        axs[i].plot(gt_states[:, i], label=f'GT State {i}')
-        axs[i].set_xlabel(f'Action {i}')
+        axs[i].plot(gt_states[:, i])
+        axs[i].set_title(f'{DEFAULT_STATE_NAMES[i]}')
+        axs[i].set_xlabel(f'Step')
         axs[i].legend()
         axs[i].grid(True)
 

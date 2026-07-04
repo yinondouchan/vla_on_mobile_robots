@@ -8,9 +8,9 @@ import numpy as np
 import shutil
 import os
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
+from vlamobile.env import DEFAULT_STATE_NAMES
 
 DEFAULT_ACTION_NAMES = ("forward", "turn", "grip", "lift")
-DEFAULT_STATE_NAMES = ("base_x", "base_y", "base_yaw", "lift_state", "grip_r", "grip_l")
 DEFAULT_CAMERAS = {"sideview": (480, 640)}
 
 

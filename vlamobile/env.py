@@ -20,6 +20,7 @@ def _default_model_path() -> Path:
 DEFAULT_MODEL_PATH = _default_model_path()
 DEFAULT_CAMERA = "sideview"
 DEFAULT_IMAGE_SIZE = (480, 640)
+DEFAULT_STATE_NAMES = ("base_x", "base_y", "base_yaw", "lift_state", "grip_r", "grip_l")
 
 MAX_VELOCITY = 50.0
 TURN_GAIN = 0.5
