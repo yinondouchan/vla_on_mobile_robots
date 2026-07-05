@@ -36,10 +36,11 @@ def main(record: bool = True,
   recorder_finalize = False
   reset_environment = False
   current_task = None
+  joystick_override = False
 
   def key_callback(keycode: int) -> None:
     nonlocal input_active, lerobot_recorder, recorder_start_recording, \
-     recorder_save_episode, recorder_discard_episode, recorder_finalize, reset_environment
+     recorder_save_episode, recorder_discard_episode, recorder_finalize, reset_environment, joystick_override
     if keycode == glfw.KEY_SPACE:
       reset_environment = True
     if keycode == glfw.KEY_Y:
@@ -54,7 +55,9 @@ def main(record: bool = True,
     elif keycode == glfw.KEY_F:
       recorder_finalize = True
       print("Finalizing recording")
-
+    elif keycode == glfw.KEY_O:
+      joystick_override = not joystick_override
+      print(f"Joystick override {'enabled' if joystick_override else 'disabled'}")
 
   def handle_recorder_events(env, lerobot_recorder, task_fn, task_fn_kwargs=None):
     nonlocal recorder_start_recording, recorder_save_episode, recorder_discard_episode, recorder_finalize, reset_environment, current_task
@@ -84,10 +87,12 @@ def main(record: bool = True,
 
 
   def handle_policy_events(env, policy):
-    nonlocal recorder_start_recording, recorder_save_episode, recorder_discard_episode, recorder_finalize, reset_environment, current_task
+    nonlocal reset_environment, joystick_override
     if reset_environment:
         reset_environment = False
         env.reset()
+        policy.reset()
+    if joystick_override:
         policy.reset()
 
 
@@ -138,16 +143,6 @@ def main(record: bool = True,
       recorder_config.resume = True
 
     lerobot_recorder = LeRobotRecorder(recorder_config)  # You may want to pass recorder_config as needed
-
-    pygame.init()
-    pygame.joystick.init()
-
-    if pygame.joystick.get_count() > 0:
-      joystick = pygame.joystick.Joystick(0)
-      joystick.init()
-    else:
-      joystick = None
-      # raise IOError("No joystick found")
   if not record or compare_policy:
     # Initialize the policy
     policy = LerobotInference(
@@ -156,6 +151,15 @@ def main(record: bool = True,
         robot_type="custom_mobile_robot",
     )
     policy.reset()
+
+  pygame.init()
+  pygame.joystick.init()
+
+  if pygame.joystick.get_count() > 0:
+    joystick = pygame.joystick.Joystick(0)
+    joystick.init()
+  else:
+    joystick = None
 
   obs, _ = env.reset()
   state = obs['observation.state']
@@ -187,11 +191,17 @@ def main(record: bool = True,
 
             action = action[None]
           else:
-            action = policy.predict(state=state, images={"sideview": frame[0]}, task=policy_task)
-            # action[0] = np.clip(action[0], -1.0, 1.0)
-            # action[1] = np.clip(action[1], -1.0, 1.0)
-            # action[2] = np.clip(action[2], 0.0, 1.0)
-            # action[3] = np.clip(action[3], 0.0, 1.0)
+            if joystick_override:
+              read_joystick(joystick)
+              action = np.array([
+                forward,
+                turn,
+                grip,
+                lift
+              ], dtype=np.float64)[None]
+            else:
+              action = policy.predict(state=state, images={"sideview": frame[0]}, task=policy_task)
+
             handle_policy_events(env, policy)
 
           input_active = False
