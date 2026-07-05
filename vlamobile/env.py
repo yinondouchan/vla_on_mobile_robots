@@ -80,7 +80,7 @@ class LiftEnv(gym.Env):
         image_size: tuple[int, int] = DEFAULT_IMAGE_SIZE,
         include_images: bool = True,
         max_episode_steps: int = 1000,
-        frame_skip: int = 1,
+        frame_skip: int = 20, # set default output rate to 30Hz while simulation rate stays at 600Hz
     ) -> None:
         super().__init__()
 

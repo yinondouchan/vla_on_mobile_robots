@@ -25,7 +25,7 @@ class RecorderConfig:
     cameras: dict[str, tuple[int, int]] = field(default_factory=lambda: dict(DEFAULT_CAMERAS))
     use_videos: bool = True
     streaming_encoding: bool = True
-    vcodec: str = "h264"
+    vcodec: str = "libsvtav1"
     resume: bool = False
     overwrite_root: bool = False
 

@@ -2,6 +2,7 @@
   <include file="robot.xml"/>
 
   <option cone="elliptic"/>
+  <option timestep="0.001666666666"/> <!-- increase from 500Hz to 600Hz to be divisible by 30-->
 
   <size njmax="5000" nconmax="5000"/>
 

@@ -6,6 +6,7 @@ import numpy as np
 import pygame
 import os
 import fire
+import time
 
 from vlamobile.inference import LerobotInference
 from vlamobile.recording import LeRobotRecorder, RecorderConfig
@@ -20,7 +21,8 @@ def main(record: bool = True,
         local_data_root="data",
         policy_path="YinonDouchan/smolvla_mobile_robot_lift_v1",
         task="Pick up the small cube",
-        policy_task="Pick up the small cube"
+        policy_task="Pick up the small cube",
+        framerate: float = 30.0
         ):
 
   forward = 0.0
@@ -40,7 +42,7 @@ def main(record: bool = True,
      recorder_save_episode, recorder_discard_episode, recorder_finalize, reset_environment
     if keycode == glfw.KEY_SPACE:
       reset_environment = True
-    if keycode == glfw.KEY_R:
+    if keycode == glfw.KEY_Y:
       recorder_start_recording = True
       print("Reset poses and started recording")
     elif keycode == glfw.KEY_S:
@@ -128,7 +130,7 @@ def main(record: bool = True,
     recorder_config = RecorderConfig(
         repo_id=dataset_repo_id,
         root=local_data_root,
-        fps=int(1.0 / env_model.opt.timestep),
+        fps=int(framerate),
         robot_type="custom_mobile_robot",
     )
 
@@ -201,6 +203,7 @@ def main(record: bool = True,
               
           # Render the frame and sync with the viewer
           viewer.sync()
+          time.sleep(1.0 / framerate)  # Sleep to target 30 FPS (approximately)
      
   if record:
     lerobot_recorder.stop_recording()
