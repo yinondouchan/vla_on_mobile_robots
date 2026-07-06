@@ -143,6 +143,15 @@ python -m vlamobile.eval_alignment \
 | `F`     | Finalize dataset        |
 
 
+### Keyboard (policy mode)
+
+| Key     | Action                  |
+| ------- | ----------------------- |
+| `Space` | Reset environment       |
+| `O`     | Toggle joystick override|
+
+
+
 ### Gamepad (default axes)
 
 
