@@ -160,7 +160,7 @@ python -m vlamobile.eval_alignment \
 | Axis 4 (right joystick up/down)    | Forward / backward |
 | Axis 3 (right joystick left/right) | Turn               |
 | Axis 1 (left joystick down)        | Lift               |
-| Button 4 (upper left bumper)       | Toggle grip        |
+| Axis 2 (left trigger)              | Grip (continuous)  |
 
 
 ## Environment
@@ -168,7 +168,7 @@ python -m vlamobile.eval_alignment \
 `LiftEnv` exposes:
 
 - **Observations:** `observation.state` (6D proprioception), `observation.images.sideview` (480×640 RGB)
-- **Actions:** `[forward, turn, grip, lift]` — velocity-style base control, binary grip, lift height
+- **Actions:** `[forward, turn, grip, lift]` — velocity-style base control, continuous grip `[0, 1]`, lift height
 
 Task strings are natural-language instructions passed to the recorder and policy (see `vlamobile/tasks.py` for generators like `pick_and_place`, `turn_to_cube`, `turn_right`).
 

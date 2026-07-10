@@ -28,7 +28,7 @@ def main(record: bool = True,
   forward = 0.0
   turn = 0.0
   lift = 0.0
-  grip = False
+  grip = 0.0
   input_active = False
   recorder_start_recording = False
   recorder_save_episode = False
@@ -112,10 +112,10 @@ def main(record: bool = True,
             turn = -event.value
           elif event.axis == 1:
             lift = event.value
+          elif event.axis == 2:
+            # Left trigger: typically -1 (released) .. +1 (pressed) -> [0, 1]
+            grip = (event.value + 1.0) * 0.5
             # print(f"Axis {event.axis} moved to {event.value:.2f}")
-        elif event.type == pygame.JOYBUTTONDOWN:
-          if event.button == 4:
-            grip = not grip
             
         # elif event.type == pygame.JOYBUTTONUP:
         #     print(f"Button {event.button} released")

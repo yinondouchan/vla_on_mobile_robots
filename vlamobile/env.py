@@ -27,7 +27,6 @@ TURN_GAIN = 0.5
 MAX_LIFT = 0.15
 GRIP_OPEN = 0.07
 GRIP_CLOSED = 0.0
-GRIP_THRESHOLD = 0.5
 
 
 def mobile_robot_state(data: mujoco.MjData) -> np.ndarray:
@@ -144,13 +143,13 @@ class LiftEnv(gym.Env):
     def _apply_action(self, action: np.ndarray) -> None:
         forward = float(action[0]) * MAX_VELOCITY
         turn = float(action[1]) * MAX_VELOCITY * TURN_GAIN
-        grip = float(action[2])
+        grip = float(np.clip(action[2], 0.0, 1.0))
         lift = float(action[3]) * MAX_LIFT
         self.data.actuator("right_motor").ctrl = forward + turn
         self.data.actuator("left_motor").ctrl = forward - turn
         self.data.actuator("gripper_lift").ctrl = lift
 
-        grip_pos = GRIP_CLOSED if grip else GRIP_OPEN
+        grip_pos = GRIP_OPEN + (GRIP_CLOSED - GRIP_OPEN) * grip
         self.data.actuator("gripper_right_pos").ctrl = grip_pos
         self.data.actuator("gripper_left_pos").ctrl = grip_pos
 
