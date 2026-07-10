@@ -119,7 +119,6 @@ def eval_policy_output(dataset_repo_id, policy_path, episode_idx):
     dataset = LeRobotDataset(dataset_repo_id, revision="main")
 
     # Extract ground-truth actions and states for a baseline comparison episode
-    episode_idx = episode_idx
     dataset_df = dataset.hf_dataset.to_pandas()
     episode_df = dataset_df[dataset_df["episode_index"] == episode_idx]
 
@@ -142,7 +141,7 @@ def eval_policy_output(dataset_repo_id, policy_path, episode_idx):
         frame = dataset[frame_idx]["observation.images.sideview"]
         frame = (frame.permute(1, 2, 0) * 255).numpy().astype(np.uint8)
         state = dataset[frame_idx]["observation.state"]
-        action = policy.predict(state=state, images={"sideview": frame}, task=dataset.meta.tasks[dataset.meta.tasks == episode_df['task_index'].iloc[0]].index[0])
+        action = policy.predict(state=state, images={"sideview": frame}, task=dataset.meta.tasks.index[episode_df['task_index'].iloc[0]])
         policy_actions.append(action[0])
 
     policy_actions = np.array(policy_actions)

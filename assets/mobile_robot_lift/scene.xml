@@ -24,7 +24,8 @@
     <camera name="frontview" pos="1.6 0 0.45" quat="0.560842 0.430646 0.430646 0.560842"/>
     <camera name="birdview" pos="-0.2 0 3" quat="0.707107 0 0 0.707107"/>
     <camera name="agentview" pos="0.5 0 0.35" quat="0.653098 0.271041 0.271041 0.653098"/>
-    <camera name="sideview" pos="-0.1 4.0 1.8" quat="0.00990507 0.00687796 0.591223 0.806418"/>
+    <camera name="sideview_far" pos="-0.1 4.0 1.8" quat="0.00990507 0.00687796 0.591223 0.806418"/>
+    <camera name="sideview" pos="-0.1 2.8 1.2" quat="0.00990507 0.00687796 0.591223 0.806418"/>
 
     <body name="cube1" pos="0 0 0">
       <inertial mass="0.02" pos="0 0 0" diaginertia="0.0001 0.0001 0.0001"/>
