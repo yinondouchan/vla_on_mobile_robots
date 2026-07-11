@@ -22,7 +22,8 @@ def main(record: bool = True,
         policy_path="YinonDouchan/smolvla_mobile_robot_lift_v1",
         task="Pick up the small cube",
         policy_task="Pick up the small cube",
-        framerate: float = 30.0
+        framerate: float = 30.0,
+        policy_wait_frames: int = 30,
         ):
 
   forward = 0.0
@@ -37,6 +38,7 @@ def main(record: bool = True,
   reset_environment = False
   current_task = None
   joystick_override = False
+  policy_frame_count = 0
 
   def key_callback(keycode: int) -> None:
     nonlocal input_active, lerobot_recorder, recorder_start_recording, \
@@ -87,11 +89,12 @@ def main(record: bool = True,
 
 
   def handle_policy_events(env, policy):
-    nonlocal reset_environment, joystick_override
+    nonlocal reset_environment, joystick_override, policy_frame_count
     if reset_environment:
         reset_environment = False
         env.reset()
         policy.reset()
+        policy_frame_count = 0
     if joystick_override:
         policy.reset()
 
@@ -199,9 +202,12 @@ def main(record: bool = True,
                 grip,
                 lift
               ], dtype=np.float64)[None]
+            elif policy_frame_count < policy_wait_frames:
+              action = np.zeros((1, 4), dtype=np.float64)
             else:
               action = policy.predict(state=state, images={"sideview": frame[0]}, task=policy_task)
 
+            policy_frame_count += 1
             handle_policy_events(env, policy)
 
           input_active = False

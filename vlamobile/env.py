@@ -20,7 +20,7 @@ def _default_model_path() -> Path:
 DEFAULT_MODEL_PATH = _default_model_path()
 DEFAULT_CAMERA = "sideview"
 DEFAULT_IMAGE_SIZE = (480, 640)
-DEFAULT_STATE_NAMES = ("base_x", "base_y", "base_yaw", "lift_state", "grip_r", "grip_l")
+DEFAULT_STATE_NAMES = ("base_yaw", "lift_state", "grip_r", "grip_l")
 
 MAX_VELOCITY = 50.0
 TURN_GAIN = 0.5
@@ -35,8 +35,8 @@ def mobile_robot_state(data: mujoco.MjData) -> np.ndarray:
     qw, qx, qy, qz = qpos[3:7]
     yaw = np.arctan2(2.0 * (qw * qz + qx * qy), 1.0 - 2.0 * (qy * qy + qz * qz))
     return np.array(
-        # base_x, base_y, base_yaw, lift_state, grip1, grip2
-        [qpos[0], qpos[1], yaw, qpos[13], qpos[14], qpos[15]],
+        # base_yaw, lift_state, grip1, grip2
+        [yaw, qpos[13], qpos[14], qpos[15]],
         dtype=np.float32,
     )
 
@@ -59,17 +59,10 @@ def reset_joint_pose(
     joint_qpos[3:7] = [np.cos(q / 2), 0, 0, np.sin(q / 2)]
 
 
-def reset_poses(model: mujoco.MjModel, data: mujoco.MjData, rng: np.random.Generator) -> None:
-    reset_joint_pose(model, data, "base_joint", rng, y_range=(-2.0, -1.0))
-    reset_joint_pose(model, data, "cube_joint0", rng, y_range=(-1.0, 0.8))
-    reset_joint_pose(model, data, "cube_joint1", rng, y_range=(-1.0, 0.8))
-    reset_joint_pose(model, data, "cube_joint2", rng, y_range=(-1.0, 0.8))
-
-
 class LiftEnv(gym.Env):
     """Basic Gymnasium environment for the mobile lift MuJoCo scene."""
 
-    metadata = {"render_modes": ["rgb_array", "human"], "render_fps": 500}
+    metadata = {"render_modes": ["rgb_array", "human"], "render_fps": 30}
 
     def __init__(
         self,
@@ -80,6 +73,9 @@ class LiftEnv(gym.Env):
         include_images: bool = True,
         max_episode_steps: int = 1000,
         frame_skip: int = 20, # set default output rate to 30Hz while simulation rate stays at 600Hz
+        hide_small_cube: bool = False,
+        hide_medium_cube: bool = False,
+        hide_large_cube: bool = False
     ) -> None:
         super().__init__()
 
@@ -90,9 +86,13 @@ class LiftEnv(gym.Env):
         self.include_images = include_images
         self.max_episode_steps = max_episode_steps
         self.frame_skip = frame_skip
+        self.hide_small_cube = hide_small_cube
+        self.hide_medium_cube = hide_medium_cube
+        self.hide_large_cube = hide_large_cube
 
         self.model = mujoco.MjModel.from_xml_path(str(self.model_path))
         self.data = mujoco.MjData(self.model)
+
         self.camera_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_CAMERA, self.camera_name)
         if self.camera_id < 0:
             raise ValueError(f"Camera '{self.camera_name}' not found in {self.model_path}")
@@ -111,7 +111,7 @@ class LiftEnv(gym.Env):
             "observation.state": spaces.Box(
                 low=-np.inf,
                 high=np.inf,
-                shape=(6,),
+                shape=(4,),
                 dtype=np.float32,
             ),
         }
@@ -170,6 +170,19 @@ class LiftEnv(gym.Env):
     def get_env_state(self) -> dict[str, np.ndarray]:
         return {"qpos": self.data.qpos.copy(), "qvel": self.data.qvel.copy()}
 
+
+    def reset_poses(self, model: mujoco.MjModel, data: mujoco.MjData, rng: np.random.Generator) -> None:
+
+        y_range_small = (-1.0, 0.8) if not self.hide_small_cube else (100.0, 100.0)
+        y_range_medium = (-1.0, 0.8) if not self.hide_medium_cube else (100.0, 100.0)
+        y_range_large = (-1.0, 0.8) if not self.hide_large_cube else (100.0, 100.0)
+
+        reset_joint_pose(model, data, "base_joint", rng, y_range=(-2.0, -1.0))
+        reset_joint_pose(model, data, "cube_joint0", rng, y_range=y_range_small)
+        reset_joint_pose(model, data, "cube_joint1", rng, y_range=y_range_medium)
+        reset_joint_pose(model, data, "cube_joint2", rng, y_range=y_range_large)
+
+
     def reset(
         self,
         *,
@@ -186,8 +199,11 @@ class LiftEnv(gym.Env):
             self.data.qpos[:] = initial_state["qpos"]
             self.data.qvel[:] = initial_state["qvel"]
         else:
-            reset_poses(self.model, self.data, self._rng)
+            self.reset_poses(self.model, self.data, self._rng)
             initial_state = self.get_env_state()
+
+        # set grippers to be initially open and lift to be initially down
+        self.data.qpos[13:16] = GRIP_OPEN
             
         mujoco.mj_forward(self.model, self.data)
 
@@ -238,7 +254,7 @@ gym.register(
 )
 
 
-def make_env(n_envs: int = 1, use_async_envs: bool = False):
+def make_env(n_envs: int = 1, use_async_envs: bool = False, cfg=None, **env_kwargs):
     """
     Create vectorized environments for your custom task.
 
@@ -249,9 +265,12 @@ def make_env(n_envs: int = 1, use_async_envs: bool = False):
     Returns:
         gym.vector.VectorEnv or dict mapping suite names to vectorized envs
     """
+    if cfg is not None:
+        env_kwargs = {**(getattr(cfg, "gym_kwargs", None) or {}), **env_kwargs}
+
     def _make_single_env():
         # Create your custom environment
-        return gym.make("LiftMobileRobot-v0")
+        return gym.make("LiftMobileRobot-v0", **env_kwargs)
 
     # Choose vector environment type
     env_cls = gym.vector.AsyncVectorEnv if use_async_envs else gym.vector.SyncVectorEnv
