@@ -1,10 +1,11 @@
 import fire
 from huggingface_hub import HfApi
 
-def main(repo):
+def main(repo, env_path="vlamobile/env.py"):
     api = HfApi()
     files = [
-        ("vlamobile/env.py", "env.py"),
+        (env_path, "env.py"),
+        ("vlamobile/lift_env.py", "lift_env.py"),
         "assets/mobile_robot_lift/scene.xml",
         "assets/mobile_robot_lift/robot.xml",
         "assets/mobile_robot_lift/textures/light-gray-floor-tile.png",

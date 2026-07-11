@@ -16,7 +16,7 @@ from vlamobile.tasks import tasks
 def main(record: bool = True,
         disable_control: bool = False,
         compare_policy: bool = False,
-        env_hf_path: str | None = None,
+        env_hf_path: str = "YinonDouchan/mobile_robot_lift_env@main",
         dataset_repo_id="YinonDouchan/mobile_robot_lift_v1",
         local_data_root="data",
         policy_path="YinonDouchan/smolvla_mobile_robot_lift_v1",
@@ -126,7 +126,7 @@ def main(record: bool = True,
         # elif event.type == pygame.JOYHATMOTION:
         #     print(f"Hat/D-pad {event.hat} moved to {event.value}")
 
-  env = make_env("YinonDouchan/mobile_robot_lift_env@main", n_envs=1, use_async_envs=False, trust_remote_code=True)['hub_env'][0]
+  env = make_env(env_hf_path, n_envs=1, use_async_envs=False, trust_remote_code=True)['hub_env'][0]
   env.reset()
 
   env_unwrapped = env.envs[0].unwrapped

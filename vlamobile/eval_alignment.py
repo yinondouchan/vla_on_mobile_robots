@@ -7,7 +7,7 @@ import mujoco
 import mujoco.viewer
 from tqdm import tqdm
 
-from vlamobile.env import DEFAULT_MODEL_PATH, LiftEnv, DEFAULT_STATE_NAMES
+from vlamobile.lift_env import DEFAULT_MODEL_PATH, LiftEnv, DEFAULT_STATE_NAMES
 from vlamobile.inference import LerobotInference
 from vlamobile.recording import DEFAULT_ACTION_NAMES
 
