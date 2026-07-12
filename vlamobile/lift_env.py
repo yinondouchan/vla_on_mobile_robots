@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Sequence
 
 import gymnasium as gym
 import mujoco
@@ -18,9 +18,20 @@ def _default_model_path() -> Path:
 
 
 DEFAULT_MODEL_PATH = _default_model_path()
-DEFAULT_CAMERA = "sideview"
+DEFAULT_CAMERAS = ("sideview", "robotfrontview")
+DEFAULT_RENDER_CAMERA = "sideview"
 DEFAULT_IMAGE_SIZE = (480, 640)
 DEFAULT_STATE_NAMES = ("base_yaw", "lift_state", "grip_r", "grip_l")
+
+
+def _normalize_camera_names(camera_names: str | Sequence[str]) -> tuple[str, ...]:
+    if isinstance(camera_names, str):
+        names = (camera_names,)
+    else:
+        names = tuple(camera_names)
+    if not names:
+        raise ValueError("At least one camera name is required")
+    return names
 
 MAX_VELOCITY = 50.0
 TURN_GAIN = 0.5
@@ -68,7 +79,7 @@ class LiftEnv(gym.Env):
         self,
         model_path: str | Path = DEFAULT_MODEL_PATH,
         render_mode: str | None = "rgb_array",
-        camera_name: str = DEFAULT_CAMERA,
+        camera_names: str | Sequence[str] = DEFAULT_CAMERAS,
         image_size: tuple[int, int] = DEFAULT_IMAGE_SIZE,
         include_images: bool = True,
         max_episode_steps: int = 1000,
@@ -79,12 +90,15 @@ class LiftEnv(gym.Env):
         hide_red_platform: bool = False,
         hide_green_platform: bool = False,
         hide_blue_platform: bool = False,
+        *,
+        render_camera_name: str | Sequence[str] | None = None,
     ) -> None:
         super().__init__()
 
         self.model_path = Path(model_path)
         self.render_mode = render_mode
-        self.camera_name = camera_name
+        self.camera_names = _normalize_camera_names(camera_names)
+        self.render_camera_name = render_camera_name if render_camera_name is not None else DEFAULT_RENDER_CAMERA
         self.image_height, self.image_width = image_size
         self.include_images = include_images
         self.max_episode_steps = max_episode_steps
@@ -95,13 +109,19 @@ class LiftEnv(gym.Env):
         self.hide_red_platform = hide_red_platform
         self.hide_green_platform = hide_green_platform
         self.hide_blue_platform = hide_blue_platform
-
         self.model = mujoco.MjModel.from_xml_path(str(self.model_path))
         self.data = mujoco.MjData(self.model)
+        self.camera_ids: dict[str, int] = {}
+        self.last_observation = None
 
-        self.camera_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_CAMERA, self.camera_name)
-        if self.camera_id < 0:
-            raise ValueError(f"Camera '{self.camera_name}' not found in {self.model_path}")
+        for name in self.camera_names:
+            camera_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_CAMERA, name)
+            if camera_id < 0:
+                raise ValueError(f"Camera '{name}' not found in {self.model_path}")
+
+            self.camera_ids[name] = camera_id
+
+        assert self.render_camera_name in self.camera_names, f"Render camera name '{self.render_camera_name}' should be in camera_names {self.camera_names}"
 
         self.renderer: mujoco.Renderer | None = None
         if self.include_images or self.render_mode is not None:
@@ -122,12 +142,14 @@ class LiftEnv(gym.Env):
             ),
         }
         if self.include_images:
-            observation_spaces[f"observation.images.{self.camera_name}"] = spaces.Box(
+            image_space = spaces.Box(
                 low=0,
                 high=255,
                 shape=(self.image_height, self.image_width, 3),
                 dtype=np.uint8,
             )
+            for name in self.camera_names:
+                observation_spaces[f"observation.images.{name}"] = image_space
         self.observation_space = spaces.Dict(observation_spaces)
 
         self.action_space = spaces.Box(
@@ -159,14 +181,18 @@ class LiftEnv(gym.Env):
         self.data.actuator("gripper_right_pos").ctrl = grip_pos
         self.data.actuator("gripper_left_pos").ctrl = grip_pos
 
+    def _render_camera(self, camera_name: str) -> np.ndarray:
+        assert self.renderer is not None
+        self.renderer.update_scene(self.data, camera=self.camera_ids[camera_name])
+        return self.renderer.render()
+
     def _get_observation(self) -> dict[str, np.ndarray]:
         obs: dict[str, np.ndarray] = {
             "observation.state": mobile_robot_state(self.data),
         }
         if self.include_images:
-            assert self.renderer is not None
-            self.renderer.update_scene(self.data, camera=self.camera_id)
-            obs[f"observation.images.{self.camera_name}"] = self.renderer.render()
+            for name in self.camera_names:
+                obs[f"observation.images.{name}"] = self._render_camera(name)
 
         return obs
 
@@ -229,8 +255,6 @@ class LiftEnv(gym.Env):
             
         mujoco.mj_forward(self.model, self.data)
 
-        self.renderer.update_scene(self.data, camera=self.camera_id)
-
         self._elapsed_steps = 0
         observation = self._get_observation()
         info = {"task": options.get("task") if options else None, "initial_state": initial_state}
@@ -250,18 +274,11 @@ class LiftEnv(gym.Env):
         terminated = False
         truncated = self._elapsed_steps >= self.max_episode_steps
         info: dict = {}
+        self.last_observation = observation
         return observation, reward, terminated, truncated, info
 
     def render(self) -> np.ndarray | None:
-        if self.render_mode is None:
-            return None
-        if self.renderer is None:
-            self.renderer = mujoco.Renderer(self.model, height=self.image_height, width=self.image_width)
-        self.renderer.update_scene(self.data, camera=self.camera_id)
-        frame = self.renderer.render()
-        if self.render_mode == "human":
-            raise NotImplementedError("Human rendering is not implemented. Use render_mode='rgb_array'.")
-        return frame
+        return self.last_observation[f"observation.images.{self.render_camera_name}"]
 
     def close(self) -> None:
         if self.renderer is not None:

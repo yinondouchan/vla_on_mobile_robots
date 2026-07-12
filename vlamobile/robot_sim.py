@@ -167,14 +167,12 @@ def main(record: bool = True,
   obs, _ = env.reset()
   state = obs['observation.state']
 
-
-  # 2. Open the visualizer and run the simulation
   with mujoco.viewer.launch_passive(env_model, env_data, key_callback=key_callback) as viewer:
-      viewer.cam.fixedcamid = env_unwrapped.camera_id
+      viewer.cam.fixedcamid = env_unwrapped.camera_ids["sideview"]
       viewer.cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
 
       while viewer.is_running():
-          frame = env.render()
+          frames  = {k[len("observation.images."):]: v[0] for k, v in obs.items() if k.startswith("observation.images.")}
 
           if record:
             read_joystick(joystick)
@@ -184,12 +182,12 @@ def main(record: bool = True,
                 grip,
                 lift
             ], dtype=np.float64)
-            lerobot_recorder.add_frame(action=action, state=state[0], images={"sideview": frame[0]},
+            lerobot_recorder.add_frame(action=action, state=state[0], images=frames,
              environment_state=env_unwrapped.get_env_state())
             handle_recorder_events(env, lerobot_recorder=lerobot_recorder, task_fn=tasks[task])
 
             if compare_policy:
-              test_action = policy.predict(state=state, images={"sideview": frame[0]}, task=task)
+              test_action = policy.predict(state=state, images=frames, task=task)
               print(test_action)
 
             action = action[None]
@@ -205,7 +203,7 @@ def main(record: bool = True,
             elif policy_frame_count < policy_wait_frames:
               action = np.zeros((1, 4), dtype=np.float64)
             else:
-              action = policy.predict(state=state, images={"sideview": frame[0]}, task=policy_task)
+              action = policy.predict(state=state, images=frames, task=policy_task)
 
             policy_frame_count += 1
             handle_policy_events(env, policy)
