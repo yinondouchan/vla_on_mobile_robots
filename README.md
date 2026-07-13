@@ -17,12 +17,20 @@ The custom Gymnasium environment lives in `vlamobile/env.py` and is published to
 
 ```
 vla_playground/
-├── assets/mobile_robot_lift/   # MuJoCo robot + scene meshes and textures
+├── assets/
+│   └── mobile_robot_lift/      # MuJoCo robot + scene
+│       ├── robot.xml           # Robot model
+│       ├── scene.xml           # Scene (floor, cubes, platforms, cameras)
+│       ├── meshes/             # STL meshes (box, cup, …)
+│       └── textures/           # PNG textures (floor, wood, ceramic, …)
 ├── vlamobile/
-│   ├── env.py                  # LiftEnv + make_env() for HF hub
-│   ├── robot_sim.py            # Interactive sim: record + policy inference
-│   ├── recording.py            # LeRobot dataset recorder
-│   ├── inference.py            # LerobotInference policy wrapper
+│   ├── env.py                  # make_env() for multi cube multi platform setting
+│   ├── env_single_cube_single_platform.py   # make_env() for single cube single platform setting
+│   ├── env_single_cube_multi_platform.py   # make_env() for single cube multi platform setting
+│   ├── lift_env.py             # Main environment implementation
+│   ├── robot_sim.py            # Interactive MuJoCo sim: record + policy inference
+│   ├── recording.py            # LeRobot dataset recorder utilities
+│   ├── inference.py            # LeRobot policy inference utilities
 │   ├── tasks.py                # Natural-language task generators
 │   ├── eval_alignment.py       # Policy vs dataset action comparison plots
 │   ├── upload_env.py           # Push env + assets to Hugging Face
@@ -177,9 +185,10 @@ Task strings are natural-language instructions passed to the recorder and policy
 ### Environemnts
 
 
-| Artifact    | Repo                                 | Type                |
+| Artifact    | Repo                                 | Description                |
 | ----------- | ------------------------------------ | ------------------- |
-| Environment | `YinonDouchan/mobile_robot_lift_env` | model (remote code) |
+| Environment | `YinonDouchan/mobile_robot_lift_env` | multi-cube multi-platform |
+| Environment | `YinonDouchan/mobile_robot_lift_env_single_cube_single_platform` | single-cube single-platform |
 
 
 ### Datasets and Trained policies
@@ -187,9 +196,7 @@ Task strings are natural-language instructions passed to the recorder and policy
 
 | Dataset Name   | Dataset Repo                                            | Trained Policy Repo                                 | Description                                              |
 | -------------- | ------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------- |
-| Pick and place | `YinonDouchan/smolvla_mobile_robot_lift_pick_and_place` | `YinonDouchan/mobile_robot_lift_pick_and_place`     | Pick one of the cubes and put it on one of the platforms |
-| Turn to cube   | `YinonDouchan/smolvla_mobile_robot_lift_turn_to_cube`   | `YinonDouchan/mobile_robot_lift_turn_to_cube`       | Turn towards one of the cubes                            |
-| Turn right     | `YinonDouchan/mobile_robot_lift_turn_right`             | `YinonDouchan/smolvla_mobile_robot_lift_turn_right` | Turn to the right                                        |
+| Pick and place, single robot and platform | `YinonDouchan/smolvla_mobile_robot_lift_pick_and_place_single` | `YinonDouchan/mobile_robot_lift_pick_and_place`     | Pick the cube and place it on the platform |
 
 
 ## Development notes
@@ -198,9 +205,13 @@ Task strings are natural-language instructions passed to the recorder and policy
 
 ## Research notes
 
-- Suggested improvements to environment:
-  - Make sideview camera closer to robot, cubes and platforms so objects will appear larger in input to VLA
-  - Add first person front view camera to robot
+- Simulation timestep is set to 30 FPS
+- Made side view camera a little closer so objects will appear larger
+- Policy starts several frames from sim start to let simulation stabilize. This prevents policy from observing out of distribution observations.
+- Adding a first person front camera to the robot was a game changer
+- Obtained decent performance on pick and place for single robot and platform setting.
+  - When cube is to the side of the robot or in the far edges of the environment, the robot sometimes misses it. It's a matter of polishing the dataset.
+  - When creating demonstrations of picking up a cube, make sure the cube is inside the gripper enough - this prevents the policy from missing the cube with the gripper.
 
 ## TODO
 
