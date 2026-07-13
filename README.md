@@ -196,7 +196,7 @@ Task strings are natural-language instructions passed to the recorder and policy
 
 | Dataset Name   | Dataset Repo                                            | Trained Policy Repo                                 | Description                                              |
 | -------------- | ------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------- |
-| Pick and place, single robot and platform | `YinonDouchan/smolvla_mobile_robot_lift_pick_and_place_single` | `YinonDouchan/mobile_robot_lift_pick_and_place`     | Pick the cube and place it on the platform |
+| Pick and place, single robot and platform | `YinonDouchan/mobile_robot_lift_pick_and_place` | `YinonDouchan/smolvla_mobile_robot_lift_pick_and_place_single`     | Pick the cube and place it on the platform |
 
 
 ## Development notes
