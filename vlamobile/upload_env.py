@@ -3,6 +3,10 @@ from huggingface_hub import HfApi
 
 def main(repo, env_path="vlamobile/env.py"):
     api = HfApi()
+    try:
+        api.create_repo(repo_id=repo, repo_type="model", exist_ok=True)
+    except Exception as e:
+        print(f"Could not create repo {repo} (it may already exist): {e}")
     files = [
         (env_path, "env.py"),
         ("vlamobile/lift_env.py", "lift_env.py"),

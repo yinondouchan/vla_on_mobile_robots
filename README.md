@@ -2,6 +2,10 @@
 
 A MuJoCo simulation playground for training and evaluating vision-language-action (VLA) policies on a custom mobile lift robot. Record demonstrations with a joystick, fine-tune [SmolVLA](https://huggingface.co/lerobot/smolvla_base) via [LeRobot](https://github.com/huggingface/lerobot), and run policies in the interactive simulator.
 
+## Motivation
+
+
+
 ## Overview
 
 This repo provides an end-to-end loop:
@@ -210,7 +214,7 @@ Task strings are natural-language instructions passed to the recorder and policy
 - Policy starts several frames from sim start to let simulation stabilize. This prevents policy from observing out of distribution observations.
 - Adding a first person front camera to the robot was a game changer
 - Obtained decent performance on pick and place for single robot and platform setting.
-  - When cube is to the side of the robot or in the far edges of the environment, the robot sometimes misses it. It's a matter of polishing the dataset.
+  - When cube is to the side of the robot or in the far edges of the environment, the robot sometimes misses it. It's a matter of polishing the dataset and possibly adding augmentations like random warp, or maybe even randomizing side view camera a bit.
   - When creating demonstrations of picking up a cube, make sure the cube is inside the gripper enough - this prevents the policy from missing the cube with the gripper.
 
 ## TODO
