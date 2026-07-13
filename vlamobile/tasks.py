@@ -64,12 +64,16 @@ def pick_and_place():
   return f"Pick up the {random.choice(['small', 'medium', 'large'])} cube and place it on the {random.choice(['red', 'green', 'blue'])} platform"
 
 
+def pick_and_place_single_cube_single_platform():
+  return "Pick up the cube and place it on the platform"
+
+
 def pick_up_cube():
   return f"Pick up the {random.choice(['small', 'medium', 'large'])} cube"
 
 
 def pick_up_cube_single():
-  return f"Pick up the cube"
+  return "Pick up the cube"
 
 
 def turn_to_cube():
@@ -77,13 +81,14 @@ def turn_to_cube():
 
 
 def turn_right():
-  return f"Turn the robot to the right"
+  return "Turn the robot to the right"
 
 
 tasks = {
   "pick_up_cube": pick_up_cube,
   "pick_up_cube_single": pick_up_cube_single,
   "pick_and_place": pick_and_place,
+  "pick_and_place_single_cube_single_platform": pick_and_place_single_cube_single_platform,
   "turn_to_cube": turn_to_cube,
   "turn_right": turn_right,
   "random": random_task
