@@ -10,8 +10,9 @@ import os
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from vlamobile.lift_env import DEFAULT_STATE_NAMES
 
+DEFAULT_RESOLUTION = (480, 640)
 DEFAULT_ACTION_NAMES = ("forward", "turn", "grip", "lift")
-DEFAULT_CAMERAS = {"sideview": (480, 640),  "robotfrontview": (480, 640)}
+DEFAULT_CAMERAS = {"sideview": DEFAULT_RESOLUTION,  "robotfrontview": DEFAULT_RESOLUTION}
 
 
 @dataclass

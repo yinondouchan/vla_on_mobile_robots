@@ -4,7 +4,7 @@ A MuJoCo simulation playground for training and evaluating vision-language-actio
 
 ## Motivation
 
-
+Testing how well a VLA can perform on a simple mobile robot, as most of the work seems to  be concentrated on robotic arms.
 
 ## Overview
 
@@ -20,7 +20,6 @@ The custom Gymnasium environment lives in `vlamobile/env.py` and is published to
 ## Project structure
 
 ```
-vla_playground/
 ├── assets/
 │   └── mobile_robot_lift/      # MuJoCo robot + scene
 │       ├── robot.xml           # Robot model
@@ -29,6 +28,8 @@ vla_playground/
 │       └── textures/           # PNG textures (floor, wood, ceramic, …)
 ├── vlamobile/
 │   ├── env.py                  # make_env() for multi cube multi platform setting
+│   ├── env_multi_cube_single_platform.py   # make_env() for multi cube single platform setting
+│   ├── env_multi_cube_single_platform.py   # make_env() for multi cube single platform with egocentric cameras setting
 │   ├── env_single_cube_single_platform.py   # make_env() for single cube single platform setting
 │   ├── env_single_cube_multi_platform.py   # make_env() for single cube multi platform setting
 │   ├── lift_env.py             # Main environment implementation
@@ -157,11 +158,11 @@ python -m vlamobile.eval_alignment \
 
 ### Keyboard (policy mode)
 
-| Key     | Action                  |
-| ------- | ----------------------- |
-| `Space` | Reset environment       |
-| `O`     | Toggle joystick override|
 
+| Key     | Action                   |
+| ------- | ------------------------ |
+| `Space` | Reset environment        |
+| `O`     | Toggle joystick override |
 
 
 ### Gamepad (default axes)
@@ -189,18 +190,21 @@ Task strings are natural-language instructions passed to the recorder and policy
 ### Environemnts
 
 
-| Artifact    | Repo                                 | Description                |
-| ----------- | ------------------------------------ | ------------------- |
-| Environment | `YinonDouchan/mobile_robot_lift_env` | multi-cube multi-platform |
+| Artifact    | Repo                                                             | Description                 |
+| ----------- | ---------------------------------------------------------------- | --------------------------- |
+| Environment | `YinonDouchan/mobile_robot_lift_env`                             | multi-cube multi-platform   |
 | Environment | `YinonDouchan/mobile_robot_lift_env_single_cube_single_platform` | single-cube single-platform |
+| Environment | `YinonDouchan/mobile_robot_lift_env_single_cube_multi_platform` | single-cube multi-platform |
+| Environment | `YinonDouchan/mobile_robot_lift_env_single_cube_multi_platform_egocentric` | single-cube multi-platform with egocentric cameras |
 
 
 ### Datasets and Trained policies
 
 
-| Dataset Name   | Dataset Repo                                            | Trained Policy Repo                                 | Description                                              |
-| -------------- | ------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------- |
-| Pick and place, single robot and platform | `YinonDouchan/mobile_robot_lift_pick_and_place_single` | `YinonDouchan/smolvla_mobile_robot_lift_pick_and_place_single`     | Pick the cube and place it on the platform |
+| Dataset Name                              | Dataset Repo                                           | Trained Policy Repo                                            | Description                                |
+| ----------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------ |
+| Pick and place, single robot and platform | `YinonDouchan/mobile_robot_lift_pick_and_place_single` | `YinonDouchan/smolvla_mobile_robot_lift_pick_and_place_single` | Pick the cube and place it on the platform |
+| Pick and place, single robot multi platform | `YinonDouchan/mobile_robot_lift_pick_and_place_single_multi` | `YinonDouchan/smolvla_mobile_robot_lift_pick_and_place_single_multi` | Pick the cube and place it on the platform |
 
 
 ## Development notes
@@ -213,13 +217,15 @@ Task strings are natural-language instructions passed to the recorder and policy
 - Made side view camera a little closer so objects will appear larger
 - Policy starts several frames from sim start to let simulation stabilize. This prevents policy from observing out of distribution observations.
 - Adding a first person front camera to the robot was a game changer
-- Obtained decent performance on pick and place for single robot and platform setting.
+- Obtained decent performance on pick and place for single cube and platform setting.
   - When cube is to the side of the robot or in the far edges of the environment, the robot sometimes misses it. It's a matter of polishing the dataset and possibly adding augmentations like random warp, or maybe even randomizing side view camera a bit.
   - When creating demonstrations of picking up a cube, make sure the cube is inside the gripper enough - this prevents the policy from missing the cube with the gripper.
+- Obtained decent performance  on pick and place for single cube and multi-platform setting
+  - Unlike single-platform setting, this task also uses the text part of the VLM.
 
-## TODO
+### What's next
 
-- Test `pyproject.toml` dependencies
+- Repeating the single-cube multi-platform settitng but with egocentric cameras only. It's much more applicable for real robots to rely on their own camera rather than be wirelessly dependent on external cameras.
 
 ## License
 

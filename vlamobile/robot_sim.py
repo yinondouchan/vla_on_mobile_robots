@@ -9,7 +9,7 @@ import fire
 import time
 
 from vlamobile.inference import LerobotInference
-from vlamobile.recording import LeRobotRecorder, RecorderConfig
+from vlamobile.recording import LeRobotRecorder, RecorderConfig, DEFAULT_RESOLUTION
 from vlamobile.tasks import tasks
 
 
@@ -141,6 +141,7 @@ def main(record: bool = True,
         root=local_data_root,
         fps=int(framerate),
         robot_type="custom_mobile_robot",
+        cameras={camera: DEFAULT_RESOLUTION for camera in env_unwrapped.camera_names},
     )
 
     if os.path.exists(recorder_config.root):

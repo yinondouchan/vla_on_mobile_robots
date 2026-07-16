@@ -16,7 +16,15 @@ def make_env(n_envs: int = 1, use_async_envs: bool = False, cfg=None, **env_kwar
     if cfg is not None:
         env_kwargs = {**(getattr(cfg, "gym_kwargs", None) or {}), **env_kwargs}
 
-    env_kwargs.update({"camera_names": ["robotfrontview_high", "robotfrontview"], "render_camera_name": "robotfrontview_high"})
+    env_kwargs.update(
+        {
+            "camera_names": ["robotfrontview_high", "robotfrontview"],
+            "render_camera_name": "robotfrontview_high",
+            "hide_medium_cube": True,
+            "hide_small_cube": True
+         }
+    )
+    
     def _make_single_env():
         # Create your custom environment
         return gym.make("LiftMobileRobot-v0", **env_kwargs)
