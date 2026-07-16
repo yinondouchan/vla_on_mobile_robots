@@ -14,6 +14,8 @@ def main(repo, env_path="vlamobile/env.py"):
         "assets/mobile_robot_lift/robot.xml",
         "assets/mobile_robot_lift/textures/light-gray-floor-tile.png",
         "assets/mobile_robot_lift/textures/red-wood.png",
+        "assets/mobile_robot_lift/textures/green-wood.png",
+        "assets/mobile_robot_lift/textures/blue-wood.png"
     ]
     for entry in files:
         if isinstance(entry, tuple):

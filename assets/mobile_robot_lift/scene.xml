@@ -13,8 +13,12 @@
   <asset>
         <texture type="2d" colorspace="sRGB" name="texplane" file="textures/light-gray-floor-tile.png"/>
         <texture type="cube" colorspace="linear" name="cube_redwood" file="textures/red-wood.png"/>
+        <texture type="cube" colorspace="linear" name="cube_greenwood" file="textures/green-wood.png"/>
+        <texture type="cube" colorspace="linear" name="cube_bluewood" file="textures/blue-wood.png"/>
         <material name="floorplane" texture="texplane" texuniform="true" texrepeat="2 2" specular="0" shininess="0" reflectance="0.01"/>
         <material name="cube_redwood_mat" texture="cube_redwood" specular="0.4" shininess="0.1"/>
+        <material name="cube_greenwood_mat" texture="cube_greenwood" specular="0.4" shininess="0.1"/>
+        <material name="cube_bluewood_mat" texture="cube_bluewood" specular="0.4" shininess="0.1"/>
   </asset>
 
   <worldbody>
@@ -30,15 +34,15 @@
     <body name="cube1" pos="0 0 0">
       <inertial mass="0.02" pos="0 0 0" diaginertia="0.0001 0.0001 0.0001"/>
       <joint name="cube_joint0" type="free"/>
-      <geom name="cube_g0" size="0.02 0.02 0.02" type="box" rgba="0.5 0 0 1" friction="10.0 0.05 0.005"/>
-      <geom name="cube_g0_vis" size="0.02 0.02 0.02" type="box" contype="0" conaffinity="0" group="1" mass="0" material="cube_redwood_mat"/>
+      <geom name="cube_g0" size="0.06 0.06 0.06" type="box" rgba="0.5 0 0 1" friction="10.0 0.05 0.005"/>
+      <geom name="cube_g0_vis" size="0.06 0.06 0.06" type="box" contype="0" conaffinity="0" group="1" mass="0" material="cube_bluewood_mat"/>
       <site name="cube1_default_site" pos="0 0 0" size="0.002" rgba="1 0 0 1"/>
     </body>
     <body name="cube2" pos="0.2 0 0.04">
       <inertial mass="0.16" pos="0 0 0" diaginertia="0.0001 0.0001 0.0001"/>
       <joint name="cube_joint1" type="free"/>
-      <geom name="cube_g1" size="0.04 0.04 0.04" type="box" rgba="0.5 0 0 1" friction="10.0 0.05 0.005"/>
-      <geom name="cube_g1_vis" size="0.04 0.04 0.04" type="box" contype="0" conaffinity="0" group="1" mass="0" material="cube_redwood_mat"/>
+      <geom name="cube_g1" size="0.06 0.06 0.06" type="box" rgba="0.5 0 0 1" friction="10.0 0.05 0.005"/>
+      <geom name="cube_g1_vis" size="0.06 0.06 0.06" type="box" contype="0" conaffinity="0" group="1" mass="0" material="cube_greenwood_mat"/>
       <site name="cube2_default_site" pos="0 0 0" size="0.002" rgba="1 0 0 1"/>
     </body>
     <body name="cube3" pos="0.4 0 0.06">

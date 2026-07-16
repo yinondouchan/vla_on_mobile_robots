@@ -24,6 +24,7 @@ def main(record: bool = True,
         policy_task="Pick up the small cube",
         framerate: float = 30.0,
         policy_wait_frames: int = 30,
+        render_camera_name: str = "sideview"
         ):
 
   forward = 0.0
@@ -131,8 +132,8 @@ def main(record: bool = True,
 
   env_unwrapped = env.envs[0].unwrapped
   env_unwrapped.max_episode_steps = float('inf')
-  env_data = env_unwrapped.data
   env_model = env_unwrapped.model
+  env_data = env_unwrapped.data
 
   if record:
     recorder_config = RecorderConfig(
@@ -168,7 +169,7 @@ def main(record: bool = True,
   state = obs['observation.state']
 
   with mujoco.viewer.launch_passive(env_model, env_data, key_callback=key_callback) as viewer:
-      viewer.cam.fixedcamid = env_unwrapped.camera_ids["sideview"]
+      viewer.cam.fixedcamid = env_unwrapped.camera_ids[render_camera_name]
       viewer.cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
 
       while viewer.is_running():
