@@ -195,7 +195,7 @@ Task strings are natural-language instructions passed to the recorder and policy
 | Environment | `YinonDouchan/mobile_robot_lift_env`                             | multi-cube multi-platform   |
 | Environment | `YinonDouchan/mobile_robot_lift_env_single_cube_single_platform` | single-cube single-platform |
 | Environment | `YinonDouchan/mobile_robot_lift_env_single_cube_multi_platform` | single-cube multi-platform |
-| Environment | `YinonDouchan/mobile_robot_lift_env_single_cube_multi_platform_egocentric` | single-cube multi-platform with egocentric cameras |
+| Environment | `YinonDouchan/mobile_robot_lift_env_single_cube_multi_platform_egocentric` | single-cube multi-platform with egocentric cameras only |
 
 
 ### Datasets and Trained policies
@@ -205,6 +205,7 @@ Task strings are natural-language instructions passed to the recorder and policy
 | ----------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------ |
 | Pick and place, single robot and platform | `YinonDouchan/mobile_robot_lift_pick_and_place_single` | `YinonDouchan/smolvla_mobile_robot_lift_pick_and_place_single` | Pick the cube and place it on the platform |
 | Pick and place, single robot multi platform | `YinonDouchan/mobile_robot_lift_pick_and_place_single_multi` | `YinonDouchan/smolvla_mobile_robot_lift_pick_and_place_single_multi` | Pick the cube and place it on the platform |
+| Pick and place, single robot multi platform, egocentric | `YinonDouchan/mobile_robot_lift_pick_and_place_single_multi_egocentric` | `YinonDouchan/smolvla_mobile_robot_lift_pick_and_place_single_multi_egocentric` | Pick the cube and place it on the platform |
 
 
 ## Development notes
@@ -222,10 +223,13 @@ Task strings are natural-language instructions passed to the recorder and policy
   - When creating demonstrations of picking up a cube, make sure the cube is inside the gripper enough - this prevents the policy from missing the cube with the gripper.
 - Obtained decent performance  on pick and place for single cube and multi-platform setting
   - Unlike single-platform setting, this task also uses the text part of the VLM.
+- For multi-cube multi-platform setting, the robot had difficulty both picking the right cube and putting it on the right platform. This requires investigation, but right now it's not the highest priority.
+- Repeating the (successful) single-cube multi-platform settitng but with egocentric cameras only. It's much more applicable for real robots to rely on their own camera rather than be wirelessly dependent on external cameras as it prevents latency issues in observations and saves bandwidth.
+  - First attempt: Seems to be working, though not always perfectly. The main issue is that it sometimes places the cube on the wrong platform. It can be addressed with better data, augmentation, etc.
 
 ### What's next
 
-- Repeating the single-cube multi-platform settitng but with egocentric cameras only. It's much more applicable for real robots to rely on their own camera rather than be wirelessly dependent on external cameras.
+- Evaluate using verifiable signals (is cube lifted, is cube on X platform)
 
 ## License
 
