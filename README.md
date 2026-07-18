@@ -10,10 +10,10 @@ Testing how well a VLA can perform on a simple mobile robot, as most of the work
 
 This repo provides an end-to-end loop:
 
-1. **Record** (robot_sim.py, record=True) — Teleoperate with a gamepad and save LeRobot-format datasets locally, ready to be uploaded to huggingface as a dataset to be used by the LeRobot ecosystem.
+1. **Record** (sim.py, record=True) — Teleoperate with a gamepad and save LeRobot-format datasets locally, ready to be uploaded to huggingface as a dataset to be used by the LeRobot ecosystem.
 2. **Train** — Fine-tune SmolVLA (LoRA or full) on recorded data using the lerobot-train script.
 3. **Evaluate** — Run policies in sim, compare against ground-truth actions, and inspect alignment.
-4. **Run Policy** (robot_sim.py, record=False) — Run trained policy in simulator.
+4. **Run Policy** (sim.py, record=False) — Run trained policy in simulator.
 
 The custom Gymnasium environment lives in `vlamobile/env.py` and is published to Hugging Face for remote loading during training and eval (via the upload_env.py script). Currently, the published environment can be found in huggingface in YinonDouchan/mobile_robot_lift_env.
 
@@ -33,7 +33,7 @@ The custom Gymnasium environment lives in `vlamobile/env.py` and is published to
 │   ├── env_single_cube_single_platform.py   # make_env() for single cube single platform setting
 │   ├── env_single_cube_multi_platform.py   # make_env() for single cube multi platform setting
 │   ├── lift_env.py             # Main environment implementation
-│   ├── robot_sim.py            # Interactive MuJoCo sim: record + policy inference
+│   ├── sim.py            # Interactive MuJoCo sim: record + policy inference
 │   ├── recording.py            # LeRobot dataset recorder utilities
 │   ├── inference.py            # LeRobot policy inference utilities
 │   ├── tasks.py                # Natural-language task generators
@@ -73,7 +73,7 @@ Run scripts from the **repository root** so imports and asset paths resolve corr
 ```bash
 export PYTHONPATH="${PWD}"
 # or prefer module invocation:
-python -m vlamobile.robot_sim --help
+python -m vlamobile.sim --help
 ```
 
 ## Usage
@@ -89,7 +89,7 @@ python vlamobile/upload_env.py <huggingface repo name>
 ### Record demonstrations
 
 ```bash
-python -m vlamobile.robot_sim \
+python -m vlamobile.sim \
   --record=True \
   --dataset_repo_id=YinonDouchan/mobile_robot_lift_v1 \
   --local_data_root=data \
@@ -125,7 +125,7 @@ lerobot-train \
 ### Run policy in simulation
 
 ```bash
-python -m vlamobile.robot_sim \
+python -m vlamobile.sim \
   --record=False \
   --compare_policy=True \
   --policy_path=YinonDouchan/smolvla_mobile_robot_lift_v1 \
