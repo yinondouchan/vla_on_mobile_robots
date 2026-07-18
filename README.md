@@ -190,21 +190,21 @@ Task strings are natural-language instructions passed to the recorder and policy
 ### Environemnts
 
 
-| Artifact    | Repo                                                             | Description                 |
-| ----------- | ---------------------------------------------------------------- | --------------------------- |
-| Environment | `YinonDouchan/mobile_robot_lift_env`                             | multi-cube multi-platform   |
-| Environment | `YinonDouchan/mobile_robot_lift_env_single_cube_single_platform` | single-cube single-platform |
-| Environment | `YinonDouchan/mobile_robot_lift_env_single_cube_multi_platform` | single-cube multi-platform |
+| Artifact    | Repo                                                                       | Description                                             |
+| ----------- | -------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Environment | `YinonDouchan/mobile_robot_lift_env`                                       | multi-cube multi-platform                               |
+| Environment | `YinonDouchan/mobile_robot_lift_env_single_cube_single_platform`           | single-cube single-platform                             |
+| Environment | `YinonDouchan/mobile_robot_lift_env_single_cube_multi_platform`            | single-cube multi-platform                              |
 | Environment | `YinonDouchan/mobile_robot_lift_env_single_cube_multi_platform_egocentric` | single-cube multi-platform with egocentric cameras only |
 
 
 ### Datasets and Trained policies
 
 
-| Dataset Name                              | Dataset Repo                                           | Trained Policy Repo                                            | Description                                |
-| ----------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------ |
-| Pick and place, single robot and platform | `YinonDouchan/mobile_robot_lift_pick_and_place_single` | `YinonDouchan/smolvla_mobile_robot_lift_pick_and_place_single` | Pick the cube and place it on the platform |
-| Pick and place, single robot multi platform | `YinonDouchan/mobile_robot_lift_pick_and_place_single_multi` | `YinonDouchan/smolvla_mobile_robot_lift_pick_and_place_single_multi` | Pick the cube and place it on the platform |
+| Dataset Name                                            | Dataset Repo                                                            | Trained Policy Repo                                                             | Description                                |
+| ------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------ |
+| Pick and place, single robot and platform               | `YinonDouchan/mobile_robot_lift_pick_and_place_single`                  | `YinonDouchan/smolvla_mobile_robot_lift_pick_and_place_single`                  | Pick the cube and place it on the platform |
+| Pick and place, single robot multi platform             | `YinonDouchan/mobile_robot_lift_pick_and_place_single_multi`            | `YinonDouchan/smolvla_mobile_robot_lift_pick_and_place_single_multi`            | Pick the cube and place it on the platform |
 | Pick and place, single robot multi platform, egocentric | `YinonDouchan/mobile_robot_lift_pick_and_place_single_multi_egocentric` | `YinonDouchan/smolvla_mobile_robot_lift_pick_and_place_single_multi_egocentric` | Pick the cube and place it on the platform |
 
 
@@ -230,6 +230,11 @@ Task strings are natural-language instructions passed to the recorder and policy
 ### What's next
 
 - Evaluate using verifiable signals (is cube lifted, is cube on X platform)
+
+### Things  to try
+
+- Lerobot's built-in reward aligned behavior control (RA-BC, off-policy)
+- Train using reward weighted flow matching (RWFM, on-policy)
 
 ## License
 
