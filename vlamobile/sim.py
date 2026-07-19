@@ -1,3 +1,5 @@
+from typing import Callable
+import gymnasium
 from lerobot.envs.factory import make_env
 import mujoco
 import mujoco.viewer
@@ -9,6 +11,7 @@ import fire
 import time
 
 from vlamobile.inference import LerobotInference
+from vlamobile.lift_env import LiftEnv
 from vlamobile.recording import LeRobotRecorder, RecorderConfig, DEFAULT_RESOLUTION
 from vlamobile.tasks import tasks
 
@@ -27,10 +30,6 @@ def main(record: bool = True,
         render_camera_name: str = "sideview"
         ):
 
-  forward = 0.0
-  turn = 0.0
-  lift = 0.0
-  grip = 0.0
   input_active = False
   recorder_start_recording = False
   recorder_save_episode = False
@@ -100,33 +99,6 @@ def main(record: bool = True,
         policy.reset()
 
 
-  def read_joystick(joystick):
-    nonlocal forward, turn, grip, lift
-
-    if joystick is None:
-      return
-
-    # axes = [joystick.get_axis(idx) for idx in range(6)]
-    # print(axes)
-    for event in pygame.event.get():
-        if event.type == pygame.JOYAXISMOTION:
-          if event.axis == 4:
-            forward = -event.value
-          elif event.axis == 3:
-            turn = -event.value
-          elif event.axis == 1:
-            lift = event.value
-          elif event.axis == 2:
-            # Left trigger: typically -1 (released) .. +1 (pressed) -> [0, 1]
-            grip = (event.value + 1.0) * 0.5
-            # print(f"Axis {event.axis} moved to {event.value:.2f}")
-            
-        # elif event.type == pygame.JOYBUTTONUP:
-        #     print(f"Button {event.button} released")
-            
-        # elif event.type == pygame.JOYHATMOTION:
-        #     print(f"Hat/D-pad {event.hat} moved to {event.value}")
-
   env = make_env(env_hf_path, n_envs=1, use_async_envs=False, trust_remote_code=True)['hub_env'][0]
   env.reset()
 
@@ -149,13 +121,7 @@ def main(record: bool = True,
 
     lerobot_recorder = LeRobotRecorder(recorder_config)  # You may want to pass recorder_config as needed
   if not record or compare_policy:
-    # Initialize the policy
-    policy = LerobotInference(
-        policy_path=policy_path,
-        dataset_repo_id=dataset_repo_id,
-        robot_type="custom_mobile_robot",
-    )
-    policy.reset()
+    policy_control = PolicyControl(policy_path, dataset_repo_id)
 
   pygame.init()
   pygame.joystick.init()
@@ -165,6 +131,8 @@ def main(record: bool = True,
     joystick.init()
   else:
     joystick = None
+  
+  joystick_control = JoystickControl(joystick)
 
   obs, _ = env.reset()
   state = obs['observation.state']
@@ -177,38 +145,26 @@ def main(record: bool = True,
           frames  = {k[len("observation.images."):]: v[0] for k, v in obs.items() if k.startswith("observation.images.")}
 
           if record:
-            read_joystick(joystick)
-            action = np.array([
-                forward,
-                turn,
-                grip,
-                lift
-            ], dtype=np.float64)
+            action = joystick_control(state, frames, task=policy_task)
             lerobot_recorder.add_frame(action=action, state=state[0], images=frames,
              environment_state=env_unwrapped.get_env_state())
             handle_recorder_events(env, lerobot_recorder=lerobot_recorder, task_fn=tasks[task])
 
             if compare_policy:
-              test_action = policy.predict(state=state, images=frames, task=task)
+              test_action = policy_control(state=state, frames=frames, task=task)
               print(test_action)
 
             action = action[None]
           else:
             if joystick_override:
-              read_joystick(joystick)
-              action = np.array([
-                forward,
-                turn,
-                grip,
-                lift
-              ], dtype=np.float64)[None]
+              action = joystick_control(state, frames)
             elif policy_frame_count < policy_wait_frames:
               action = np.zeros((1, 4), dtype=np.float64)
             else:
-              action = policy.predict(state=state, images=frames, task=policy_task)
+              action = policy_control(state=state, frames=frames, task=policy_task)
 
             policy_frame_count += 1
-            handle_policy_events(env, policy)
+            handle_policy_events(env, policy_control)
 
           input_active = False
 
@@ -228,6 +184,73 @@ def main(record: bool = True,
 
   env.close()
 
+
+class JoystickControl:
+    def __init__(self, joystick: pygame.joystick.Joystick):
+        pygame.init()
+        pygame.joystick.init()
+
+        if pygame.joystick.get_count() > 0:
+          joystick = pygame.joystick.Joystick(0)
+          joystick.init()
+        else:
+          joystick = None
+
+        self.forward = 0.0
+        self.turn = 0.0
+        self.lift = 0.0
+        self.grip = 0.0
+
+    def __call__(self, state, frames, task: str):
+        for event in pygame.event.get():
+          if event.type == pygame.JOYAXISMOTION:
+              if event.axis == 4:
+                self.forward = -event.value
+              elif event.axis == 3:
+                self.turn = -event.value
+              elif event.axis == 1:
+                self.lift = event.value
+              elif event.axis == 2:
+                # Left trigger: typically -1 (released) .. +1 (pressed) -> [0, 1]
+                self.grip = (event.value + 1.0) * 0.5
+                # print(f"Axis {event.axis} moved to {event.value:.2f}")
+                
+            # elif event.type == pygame.JOYBUTTONUP:
+            #     print(f"Button {event.button} released")
+                
+            # elif event.type == pygame.JOYHATMOTION:
+            #     print(f"Hat/D-pad {event.hat} moved to {event.value}")
+
+        return np.array([
+            self.forward,
+            self.turn,
+            self.grip,
+            self.lift
+        ], dtype=np.float64)
+
+
+    def reset(self):
+      self.forward = 0.0
+      self.turn = 0.0
+      self.lift = 0.0
+      self.grip = 0.0
+
+
+class PolicyControl:
+    def __init__(self, policy_path, dataset_repo_id):
+        self.policy = LerobotInference(
+          policy_path=policy_path,
+          dataset_repo_id=dataset_repo_id,
+          robot_type="custom_mobile_robot",
+        )
+        self.policy.reset()
+
+    def __call__(self, state, frames, task: str):
+        action = self.policy.predict(state=state, images=frames, task=task)
+        return action
+
+    def reset(self):
+        self.policy.reset()
 
 
 if __name__ == "__main__":

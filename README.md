@@ -37,7 +37,7 @@ The custom Gymnasium environment lives in `vlamobile/env.py` and is published to
 │   ├── recording.py            # LeRobot dataset recorder utilities
 │   ├── inference.py            # LeRobot policy inference utilities
 │   ├── tasks.py                # Natural-language task generators
-│   ├── eval_alignment.py       # Policy vs dataset action comparison plots
+│   ├── evaluation.py       # Evaluation tools
 │   ├── upload_env.py           # Push env + assets to Hugging Face
 │   └── tag_dataset.py          # Tag datasets with LeRobot v3.0 revision
 ├── pyproject.toml              # Project & dependency configuration
@@ -135,11 +135,12 @@ python -m vlamobile.sim \
 ### Evaluate action alignment
 
 ```bash
-python -m vlamobile.eval_alignment \
-  --dataset_repo_id=YinonDouchan/mobile_robot_lift_v1 \
-  --env_hf_path=YinonDouchan/mobile_robot_lift_env \
-  --policy_path=YinonDouchan/smolvla_mobile_robot_lift_v1 \
-  --episode_idx=0
+python -m vlamobile.evaluation \
+  eval_pick_and_place_single_multi \
+  --dataset_repo_id=YinonDouchan/mobile_robot_lift_pick_and_place_single_multi_egocentric \
+  --env_hf_path=YinonDouchan/mobile_robot_lift_env_single_cube_multi_platform_egocentric@main \
+  --policy_path=YinonDouchan/smolvla_mobile_robot_lift_pick_and_place_single_multi_egocentric \
+  --num_runs=50
 ```
 
 ## Controls
@@ -229,12 +230,15 @@ Task strings are natural-language instructions passed to the recorder and policy
 
 ### What's next
 
-- Evaluate using verifiable signals (is cube lifted, is cube on X platform)
+- Create a multi-robot setting: Lifting a four-legged table using multiple robots coordinating.
 
 ### Things  to try
 
-- Lerobot's built-in reward aligned behavior control (RA-BC, off-policy)
-- Train using reward weighted flow matching (RWFM, on-policy)
+- Improve performance of policies, Currently, single platform multi cube egocentric has ~75% success rate.
+  - Better demonstrations (lowest hanging fruit): I wasn't very strict on how to place cubes on a platform.
+  - Use LeRobot's built in augmentations in the training loop.
+  - Lerobot's built-in reward aligned behavior control (RA-BC, off-policy).
+  - Train using reward weighted flow matching (RWFM, on-policy), generate rewards using a rollout strategy such as GRPO. Might require modifications to SmolVLA model.
 
 ## License
 
