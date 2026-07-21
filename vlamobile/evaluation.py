@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import mujoco
 import mujoco.viewer
 import random
+import json
+import os
 from tqdm import tqdm
 from vlamobile.utils import is_body_in_contact, is_body_on_floor
 from  vlamobile.tasks import pick_and_place_single_cube_multi_platform
@@ -170,7 +172,7 @@ class Evaluation:
         plot_alignment(policy_actions, gt_actions, gt_states)
 
 
-    def eval_pick_and_place_single_multi(self,policy_path, env_hf_path, dataset_repo_id, max_steps=2000, num_runs=100, seed=42, policy_wait_frames: int = 30, visualize=False):
+    def eval_pick_and_place_single_multi(self,policy_path, env_hf_path, dataset_repo_id, max_steps=2000, num_runs=100, seed=42, policy_wait_frames: int = 30, visualize=False, output_path=None):
         env = make_env(env_hf_path, n_envs=1, use_async_envs=False, trust_remote_code=True)['hub_env'][0]
         env.reset(seed=seed)
 
@@ -257,9 +259,26 @@ class Evaluation:
         lift_success_rate = sum([result['cube_was_lifted'] for result in task_results]) / len(task_results)
         print(f"Success rate: {success_rate}")
         print(f"Lift success rate: {lift_success_rate}")
-
         print("Average number of steps (successful runs only): ", np.mean([result['num_steps'] for result in task_results if result['success']]))
 
+        if output_path:
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            with open(output_path, 'w') as f:
+                run_params = {
+                    "num_runs": len(task_results),
+                    "success_rate": success_rate,
+                    "lift_success_rate": lift_success_rate,
+                    "average_steps_successful": float(np.mean([result['num_steps'] for result in task_results if result['success']])) if any(result['success'] for result in task_results) else None,
+                    "policy_path": policy_path,
+                    "env_hf_path": env_hf_path,
+                    "dataset_repo_id": dataset_repo_id,
+                    "max_steps": max_steps,
+                    "policy_wait_frames": policy_wait_frames,
+                    "seed": seed,
+                    "task_results": task_results
+                }
+                
+                json.dump(run_params, f, indent=4)
 
 if __name__ == "__main__":
     fire.Fire(Evaluation)

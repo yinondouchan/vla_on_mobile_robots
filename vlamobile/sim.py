@@ -175,7 +175,8 @@ def main(record: bool = True,
               
           # Render the frame and sync with the viewer
           viewer.sync()
-          time.sleep(1.0 / framerate)  # Sleep to target 30 FPS (approximately)
+          if framerate >  0:
+            time.sleep(1.0 / framerate)  # Sleep to target 30 FPS (approximately)
      
   if record:
     lerobot_recorder.stop_recording()
