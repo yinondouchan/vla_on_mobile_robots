@@ -10,29 +10,11 @@ import random
 import json
 import os
 from tqdm import tqdm
-from vlamobile.utils import is_body_in_contact, is_body_on_floor
+from vlamobile.lift_env import is_red_cube_lifted, is_red_cube_on_red_platform, is_red_cube_on_green_platform, is_red_cube_on_blue_platform
 from  vlamobile.tasks import pick_and_place_single_cube_multi_platform
 from vlamobile.lift_env import DEFAULT_MODEL_PATH, LiftEnv, DEFAULT_STATE_NAMES
 from vlamobile.inference import LerobotInference
 from vlamobile.recording import DEFAULT_ACTION_NAMES
-
-
-def is_red_cube_lifted(env_model, env_data):
-    return not is_body_on_floor(env_model, env_data, "cube3") \
-      and is_body_in_contact(env_model, env_data, "cube3", "gripper_right_claw") \
-      and is_body_in_contact(env_model, env_data, "cube3", "gripper_left_claw")
-
-
-def is_red_cube_on_red_platform(env_model, env_data):
-    return is_body_in_contact(env_model, env_data, "cube3", "box1")
-
-
-def is_red_cube_on_green_platform(env_model, env_data):
-    return is_body_in_contact(env_model, env_data, "cube3", "box2")
-
-
-def is_red_cube_on_blue_platform(env_model, env_data):
-    return is_body_in_contact(env_model, env_data, "cube3", "box3")
 
 
 def plot_alignment(policy_actions, gt_actions, gt_states):
