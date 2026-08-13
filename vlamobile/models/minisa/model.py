@@ -47,6 +47,7 @@ class MiniSAModel(nn.Module):
         self.freeze_text_encoder = cfg.freeze_text_encoder
         self.device = cfg.device
         self.vision_language_encoder, self.processor = self._init_vision_language_encoder(cfg.vision_language_model_name, cfg.device)
+        self.forward_mode = cfg.forward_mode
 
         backbone_out_dim = self.vision_language_encoder.config.text_config.hidden_size
         if cfg.freeze_backbone:
@@ -55,25 +56,47 @@ class MiniSAModel(nn.Module):
             self.vision_language_encoder.eval()
 
         self.state_enc = nn.Sequential(
-            nn.Linear(cfg.proprio_dim, cfg.state_hidden),
+            nn.Linear(cfg.proprio_dim, backbone_out_dim),
             nn.LeakyReLU(inplace=True),
-            nn.Linear(cfg.state_hidden, cfg.state_hidden)
+            nn.Linear(backbone_out_dim, backbone_out_dim)
         ).to(self.device, dtype=self.vision_language_encoder.dtype)
 
         self.action_enc = nn.Sequential(
-            nn.Linear(cfg.action_dim * cfg.action_chunk_size, cfg.action_hidden),
+            nn.Linear(cfg.action_dim * cfg.action_chunk_size, backbone_out_dim),
             nn.LeakyReLU(inplace=True),
-            nn.Linear(cfg.action_hidden, cfg.action_hidden)
+            nn.Linear(backbone_out_dim, backbone_out_dim)
         ).to(self.device, dtype=self.vision_language_encoder.dtype)
 
-        fusion_in = backbone_out_dim + cfg.state_hidden + cfg.action_hidden
-        self.head = nn.Sequential(
+        self.cross_attn = nn.MultiheadAttention(
+            embed_dim=backbone_out_dim,
+            num_heads=4,
+            batch_first=True
+        ).to(self.device, dtype=self.vision_language_encoder.dtype)
+
+        self.pool_query = nn.Parameter(torch.randn(1, 2, backbone_out_dim)).to(self.device, dtype=self.vision_language_encoder.dtype)
+
+        if self.forward_mode == "late_fusion":
+            fusion_in = backbone_out_dim * 2
+        else:
+            fusion_in = backbone_out_dim
+
+        self.success_head = nn.Sequential(
             nn.Linear(fusion_in, cfg.fusion_hidden),
             nn.LeakyReLU(inplace=True),
             nn.Dropout(cfg.dropout),
             nn.Linear(cfg.fusion_hidden, cfg.fusion_hidden // 2),
             nn.LeakyReLU(inplace=True),
             nn.Linear(cfg.fusion_hidden // 2, 1),
+        ).to(self.device, dtype=self.vision_language_encoder.dtype)
+
+        self.progress_head = nn.Sequential(
+            nn.Linear(fusion_in, cfg.fusion_hidden),
+            nn.LeakyReLU(inplace=True),
+            nn.Dropout(cfg.dropout),
+            nn.Linear(cfg.fusion_hidden, cfg.fusion_hidden // 2),
+            nn.LeakyReLU(inplace=True),
+            nn.Linear(cfg.fusion_hidden // 2, 1),
+            nn.Sigmoid()
         ).to(self.device, dtype=self.vision_language_encoder.dtype)
 
     def _init_vision_language_encoder(self, vision_language_model_name: str, device: str) -> None:
@@ -131,6 +154,58 @@ class MiniSAModel(nn.Module):
         ]
 
     def forward(self, batch: dict[str, torch.Tensor]) -> tuple[torch.Tensor, dict | None]:
+        if self.forward_mode == "early_fusion":
+            return self.forward_early_fusion(batch)
+        elif self.forward_mode == "late_fusion":
+            return self.forward_late_fusion(batch)
+        else:
+            raise ValueError(f"Invalid forward mode: {self.forward_mode}")
+
+    def forward_early_fusion(self, batch: dict[str, torch.Tensor]) -> tuple[torch.Tensor, dict | None]:
+        conversations = self._prepare_conversations(batch)
+        inputs = self.processor.apply_chat_template(
+            conversations,
+            add_generation_prompt=True,
+            tokenize=True,
+            return_dict=True,
+            return_tensors="pt",
+            do_image_splitting=False,
+            do_rescale=False
+        ).to(self.device)
+        input_ids = inputs["input_ids"]
+        attn = inputs["attention_mask"]
+        pixel_values = inputs["pixel_values"]
+        pixel_attn = inputs.get("pixel_attention_mask")
+
+        text_embeds = self.vision_language_encoder.get_input_embeddings()(input_ids)
+        image_feats = self.vision_language_encoder.get_image_features(
+            pixel_values, pixel_attn, return_dict=True
+        ).pooler_output
+        merged = self.vision_language_encoder.model.inputs_merger(input_ids, text_embeds, image_feats)
+        extra_attention_mask = torch.ones(merged.shape[0], 2, device=attn.device, dtype=attn.dtype)
+        attention_mask = torch.cat([attn, extra_attention_mask], dim=1)
+
+        state = batch["state"].view(batch["state"].size(0), -1).to(next(self.state_enc.parameters()).dtype)
+        action = batch["action"].view(batch["action"].size(0), -1).to(next(self.action_enc.parameters()).dtype)
+        state_emb = self.state_enc(state).unsqueeze(1)
+        action_emb = self.action_enc(action).unsqueeze(1)
+        inputs_embeds = torch.cat([merged, state_emb, action_emb], dim=1)
+        
+        with torch.no_grad():
+            outputs = self.vision_language_encoder.model(
+                inputs_embeds=inputs_embeds,
+                attention_mask=attention_mask,
+                output_hidden_states=True,
+            )
+
+        cross_attn_output, _ = self.cross_attn(self.pool_query.expand(inputs_embeds.shape[0], -1, -1),
+             outputs.hidden_states[-1], outputs.hidden_states[-1], key_padding_mask=~attention_mask.bool())
+        
+        success_logits = self.success_head(cross_attn_output[:, 0])
+        progress = self.progress_head(cross_attn_output[:, 1])
+        return torch.cat([success_logits, progress], dim=1)
+
+    def forward_late_fusion(self, batch: dict[str, torch.Tensor]) -> tuple[torch.Tensor, dict | None]:
         conversations = self._prepare_conversations(batch)
         inputs = self.processor.apply_chat_template(
             conversations,
@@ -144,15 +219,17 @@ class MiniSAModel(nn.Module):
         with torch.no_grad():
             outputs = self.vision_language_encoder(**inputs, output_hidden_states=True)
         
-        # TODO: For the sake of simplicity, we perform late fusion with state and action encoding.
-        # to be implemented - inject state and action embeddings to VLM prefix
-        vl_mean_pool = torch.mean(outputs.hidden_states[-1], dim=1)
+        vl_output = outputs.hidden_states[-1]
         state = batch["state"].view(batch["state"].size(0), -1).to(next(self.state_enc.parameters()).dtype)
         action = batch["action"].view(batch["action"].size(0), -1).to(next(self.action_enc.parameters()).dtype)
         h_state = self.state_enc(state)
         h_action = self.action_enc(action)
-        fused = torch.cat([vl_mean_pool, h_state, h_action], dim=-1)
-        return self.head(fused)
+        cross_attn_input = torch.stack([h_state, h_action], dim=1)
+        cross_attn_output, _ = self.cross_attn(cross_attn_input, vl_output, vl_output)
+        cross_attn_output = cross_attn_output.reshape(cross_attn_output.shape[0], -1)
+        success_logits = self.success_head(cross_attn_output)
+        progress = self.progress_head(cross_attn_output)
+        return torch.cat([success_logits, progress], dim=1)
 
     @torch.no_grad()
     def predict_proba(self, logits: torch.Tensor) -> torch.Tensor:

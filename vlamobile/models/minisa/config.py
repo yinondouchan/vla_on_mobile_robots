@@ -1,9 +1,12 @@
+from dataclasses import dataclass
 from lerobot.configs.policies import PreTrainedConfig
 from lerobot.optim.optimizers import AdamWConfig
 
 
+@PreTrainedConfig.register_subclass("minisa")
+@dataclass
 class MiniSAConfig(PreTrainedConfig):
-    """Configuration class for MyPolicy.
+    """Configuration class for MiniSA.
 
     """
     proprio_dim: int = 4
@@ -21,6 +24,7 @@ class MiniSAConfig(PreTrainedConfig):
     freeze_text_encoder: bool = True
     max_task_len: int = 10
     image_size: int = 224
+    forward_mode: str = "late_fusion" # "late_fusion" or "early_fusion"
 
     horizon: int = 1
     n_action_steps: int = 1
