@@ -11,6 +11,9 @@ from lerobot.policies.factory import make_policy, make_pre_post_processors
 from lerobot.policies.pretrained import PreTrainedPolicy
 from lerobot.utils.control_utils import predict_action
 
+from vlamobile.models.planning.config import PlannerConfig
+from vlamobile.models.planning.planning import SmolVLMPlanner
+
 
 class LerobotInference:
     """Run a LeRobot policy from Hugging Face as a drop-in joystick replacement."""
@@ -77,3 +80,87 @@ class LerobotInference:
         )
 
         return action.detach().cpu().numpy().astype(np.float64)
+
+
+class LerobotInferenceWithPlanner:
+    """Hierarchical controller: high-level SmolVLM plan + low-level VLA execution.
+
+    Drop-in replacement for :class:`LerobotInference`. On each episode it
+    decomposes the composite ``task`` into subtasks, periodically monitors
+    progress via the planner, and conditions the VLA on
+    ``planner.current_subtask()``.
+    """
+
+    def __init__(
+        self,
+        policy_path: str,
+        *,
+        dataset_repo_id: str = "YinonDouchan/mobile_robot_lift_v1",
+        robot_type: str = "custom_mobile_robot",
+        grip_threshold: float = 0.5,
+        planner: SmolVLMPlanner | None = None,
+        planner_cfg: PlannerConfig | None = None,
+        predefined_tasks: list[str] | None = None,
+        monitor_every: int = 30,
+    ):
+        self.policy = LerobotInference(
+            policy_path,
+            dataset_repo_id=dataset_repo_id,
+            robot_type=robot_type,
+            grip_threshold=grip_threshold,
+        )
+        self.planner = (
+            planner
+            if planner is not None
+            else SmolVLMPlanner(cfg=planner_cfg, predefined_tasks=predefined_tasks)
+        )
+        self.predefined_tasks = predefined_tasks
+        self.monitor_every = monitor_every
+        self._frame_idx = 0
+        self._planned_task: str | None = None
+
+    def reset(self) -> None:
+        """Reset VLA policy and planner state for a new episode."""
+        self.policy.reset()
+        self.planner.reset()
+        self._frame_idx = 0
+        self._planned_task = None
+
+    def predict(
+        self,
+        state: np.ndarray,
+        images: dict[str, np.ndarray],
+        task: str | None = None,
+    ) -> np.ndarray:
+        """Decompose/monitor as needed, then run one VLA step on the active subtask."""
+        needs_plan = self.planner.state is None or (
+            task is not None and task != self._planned_task
+        )
+        if needs_plan:
+            if task is None:
+                raise RuntimeError(
+                    "no plan yet; pass a composite task on the first predict(...) call"
+                )
+            self.planner.decompose(
+                task, images, predefined_tasks=self.predefined_tasks
+            )
+            self._planned_task = task
+            self._frame_idx = 0
+
+        if (
+            self.monitor_every > 0
+            and self._frame_idx > 0
+            and self._frame_idx % self.monitor_every == 0
+        ):
+            self.planner.step(images, step=self._frame_idx)
+
+        subtask = self.planner.current_subtask()
+        action = self.policy.predict(
+            state=state,
+            images=images,
+            task=subtask if subtask else task,
+        )
+        self._frame_idx += 1
+        return action
+
+

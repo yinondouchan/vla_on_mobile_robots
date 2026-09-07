@@ -132,14 +132,16 @@ python -m vlamobile.sim \
   --task="Pick up the small cube"
 ```
 
-### Evaluate action alignment
+### Evaluate single-cube multi-platform  setting
 
 ```bash
-python -m vlamobile.eval_alignment \
-  --dataset_repo_id=YinonDouchan/mobile_robot_lift_v1 \
-  --env_hf_path=YinonDouchan/mobile_robot_lift_env \
-  --policy_path=YinonDouchan/smolvla_mobile_robot_lift_v1 \
-  --episode_idx=0
+python vlamobile/evaluation.py eval_pick_and_place_single_multi \
+  --dataset_repo_id=YinonDouchan/mobile_robot_lift_pick_and_place_single_multi_egocentric \
+  --env_hf_path=YinonDouchan/mobile_robot_lift_env_single_cube_multi_platform_egocentric@main \
+  --policy_path=checkpoints/smolvla_mobile_robot_lift_pick_and_place_single_multi_egocentric_v0.1/checkpoints/030000/pretrained_model \
+  --visualize=True \
+  --num_runs=100 \
+  --output_path=evaluation_results/smolvla_mobile_robot_lift_pick_and_place_single_multi_egocentric_v0.1_30000steps.json
 ```
 
 ## Controls
@@ -227,16 +229,12 @@ Task strings are natural-language instructions passed to the recorder and policy
 - Repeating the (successful) single-cube multi-platform settitng but with egocentric cameras only. It's much more applicable for real robots to rely on their own camera rather than be wirelessly dependent on external cameras as it prevents latency issues in observations and saves bandwidth.
   - First attempt: Seems to be working, though not always perfectly. The main issue is that it sometimes places the cube on the wrong platform. It can be addressed with better data, augmentation, etc.
 
-### What's next
-
-- Evaluate using verifiable signals (is cube lifted, is cube on X platform)
 
 ### Things  to try
 
-- Improve
-
-- Lerobot's built-in reward aligned behavior control (RA-BC, off-policy)
+- Use Lerobot's built-in reward aligned behavior control (RA-BC, off-policy)
 - Train using reward weighted flow matching (RWFM, on-policy), generate rewards using a rollout strategy such as GRPO
+- Add a planning + online evaluatiton layer above the VLA
 
 ## License
 
