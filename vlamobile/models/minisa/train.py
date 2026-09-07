@@ -37,35 +37,20 @@ def minisa_collate_fn(features: list[dict]) -> dict:
 
 def minisa_compute_metrics(eval_pred):
     outputs, labels = eval_pred
-    logits = outputs[0][:, 0]
-    progress = outputs[0][:, 1]
+    progress = outputs[0].reshape(-1)
     labels_success, labels_progress = labels
-    preds = (1 / (1 + np.exp(-logits))).reshape(-1)
-    preds_binary = (preds > 0.5).astype(np.float32)
     labels_success = labels_success.reshape(-1).astype(np.float32)
+    labels_progress = labels_progress.reshape(-1)
 
-    tp = np.sum((preds_binary == 1) & (labels_success == 1))
-    tn = np.sum((preds_binary == 0) & (labels_success == 0))
-    fp = np.sum((preds_binary == 1) & (labels_success == 0))
-    fn = np.sum((preds_binary == 0) & (labels_success == 1))
-    pred_mean = np.mean(preds)
-    pred_std = np.std(preds)
-    hist, bin_edges = np.histogram(preds, bins=20, range=(0, 1))
-
-    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-    recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-    false_positive_rate = fp / (fp + tn) if (fp + tn) > 0 else 0.0
-    false_negative_rate = fn / (fn + tp) if (fn + tp) > 0 else 0.0
-
+    pred_mean = np.mean(progress)
+    pred_std = np.std(progress)
+    hist, bin_edges = np.histogram(progress, bins=20, range=(0, 1))
 
     metrics = {
-        "precision": precision,
-        "recall": recall,
-        "false_positive_rate": false_positive_rate,
-        "false_negative_rate": false_negative_rate,
         "pred_mean": pred_mean,
         "pred_std": pred_std,
-        "pred_hist": [(f"{bin_edge:.2f}", count) for count, bin_edge in zip(hist, bin_edges)]
+        "pred_hist": [(f"{bin_edge:.2f}", count) for count, bin_edge in zip(hist, bin_edges)],
+        "progress_mse": np.mean((progress - labels_progress) ** 2),
     }
 
     preds_progress_successful = progress[labels_success == 1]
@@ -80,19 +65,13 @@ def minisa_compute_metrics(eval_pred):
 
 
 class MiniSATrainer(Trainer):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.loss_success_fn = torch.nn.BCEWithLogitsLoss()
-        self.loss_progress_fn = torch.nn.MSELoss()
-
     def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
         outputs = model(inputs)
         inputs_success = inputs["success"][:, None].to(outputs.dtype)
         inputs_progress = inputs["progress"][:, None].to(outputs.dtype)
-        loss_success = self.loss_success_fn(outputs[:, 0].unsqueeze(1), inputs_success)
-        loss_progress = torch.mean((outputs[:, 1].unsqueeze(1) - inputs_progress) ** 2 * inputs_success) # only compute progress loss for successful episodes
-        loss = loss_success + loss_progress
-        return (loss, {"logits": outputs, "loss_success": loss_success, "loss_progress": loss_progress}) if return_outputs else loss
+        # only compute progress loss for successful episodes
+        loss = torch.mean((outputs - inputs_progress) ** 2 * inputs_success)
+        return (loss, {"logits": outputs, "loss_progress": loss}) if return_outputs else loss
 
 
 @dataclass

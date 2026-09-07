@@ -9,7 +9,6 @@ from collections.abc import Sequence
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from transformers import AutoProcessor, AutoModelForImageTextToText, BitsAndBytesConfig
 from .config import MiniSAConfig
 
@@ -19,7 +18,7 @@ DEFAULT_IMAGE_SIZE = 224
 
 
 class MiniSAModel(nn.Module):
-    """Lightweight success classifier for the mobile lift robot.
+    """Lightweight progress regressor for the mobile lift robot.
 
     Inputs
     ------
@@ -33,7 +32,7 @@ class MiniSAModel(nn.Module):
 
     Output
     ------
-    logits : (B,)  raw success logits (sigmoid → P(success) = expected binary reward).
+    progress : (B, 1)  predicted episode progress in [0, 1].
     """
 
     def __init__(
@@ -73,21 +72,12 @@ class MiniSAModel(nn.Module):
             batch_first=True
         ).to(self.device, dtype=self.vision_language_encoder.dtype)
 
-        self.pool_query = nn.Parameter(torch.randn(1, 2, backbone_out_dim)).to(self.device, dtype=self.vision_language_encoder.dtype)
+        self.pool_query = nn.Parameter(torch.randn(1, 1, backbone_out_dim)).to(self.device, dtype=self.vision_language_encoder.dtype)
 
         if self.forward_mode == "late_fusion":
             fusion_in = backbone_out_dim * 2
         else:
             fusion_in = backbone_out_dim
-
-        self.success_head = nn.Sequential(
-            nn.Linear(fusion_in, cfg.fusion_hidden),
-            nn.LeakyReLU(inplace=True),
-            nn.Dropout(cfg.dropout),
-            nn.Linear(cfg.fusion_hidden, cfg.fusion_hidden // 2),
-            nn.LeakyReLU(inplace=True),
-            nn.Linear(cfg.fusion_hidden // 2, 1),
-        ).to(self.device, dtype=self.vision_language_encoder.dtype)
 
         self.progress_head = nn.Sequential(
             nn.Linear(fusion_in, cfg.fusion_hidden),
@@ -97,7 +87,7 @@ class MiniSAModel(nn.Module):
             nn.LeakyReLU(inplace=True),
             nn.Linear(cfg.fusion_hidden // 2, 1),
             nn.Sigmoid()
-        ).to(self.device, dtype=self.vision_language_encoder.dtype)
+        ).to(self.device)
 
     def _init_vision_language_encoder(self, vision_language_model_name: str, device: str) -> None:
         quantization_config = BitsAndBytesConfig(
@@ -182,7 +172,7 @@ class MiniSAModel(nn.Module):
             pixel_values, pixel_attn, return_dict=True
         ).pooler_output
         merged = self.vision_language_encoder.model.inputs_merger(input_ids, text_embeds, image_feats)
-        extra_attention_mask = torch.ones(merged.shape[0], 2, device=attn.device, dtype=attn.dtype)
+        extra_attention_mask = torch.ones(merged.shape[0], 2, device=attn.device, dtype=attn.dtype)  # state + action tokens
         attention_mask = torch.cat([attn, extra_attention_mask], dim=1)
 
         state = batch["state"].view(batch["state"].size(0), -1).to(next(self.state_enc.parameters()).dtype)
@@ -201,9 +191,7 @@ class MiniSAModel(nn.Module):
         cross_attn_output, _ = self.cross_attn(self.pool_query.expand(inputs_embeds.shape[0], -1, -1),
              outputs.hidden_states[-1], outputs.hidden_states[-1], key_padding_mask=~attention_mask.bool())
         
-        success_logits = self.success_head(cross_attn_output[:, 0])
-        progress = self.progress_head(cross_attn_output[:, 1])
-        return torch.cat([success_logits, progress], dim=1)
+        return self.progress_head(cross_attn_output[:, 0].to(next(self.progress_head.parameters()).dtype))
 
     def forward_late_fusion(self, batch: dict[str, torch.Tensor]) -> tuple[torch.Tensor, dict | None]:
         conversations = self._prepare_conversations(batch)
@@ -227,23 +215,17 @@ class MiniSAModel(nn.Module):
         cross_attn_input = torch.stack([h_state, h_action], dim=1)
         cross_attn_output, _ = self.cross_attn(cross_attn_input, vl_output, vl_output)
         cross_attn_output = cross_attn_output.reshape(cross_attn_output.shape[0], -1)
-        success_logits = self.success_head(cross_attn_output)
-        progress = self.progress_head(cross_attn_output)
-        return torch.cat([success_logits, progress], dim=1)
+        return self.progress_head(cross_attn_output.to(next(self.progress_head.parameters()).dtype))
 
     @torch.no_grad()
-    def predict_proba(self, logits: torch.Tensor) -> torch.Tensor:
-        """Return P(success) in [0, 1]."""
+    def predict_proba(self, progress: torch.Tensor) -> torch.Tensor:
+        """Return predicted progress in [0, 1]."""
         was_training = self.training
         self.eval()
         try:
-            return torch.sigmoid(logits)
+            return progress
         finally:
             self.train(was_training)
-
-    def success_loss(self, logits: torch.Tensor, success: torch.Tensor) -> torch.Tensor:
-        """Binary cross-entropy with logits. ``success`` is float/bool in {0, 1}."""
-        return F.binary_cross_entropy_with_logits(logits, success.float().view_as(logits))
 
 
 if __name__ == "__main__":
