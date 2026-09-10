@@ -1,8 +1,8 @@
-"""Thin SmolVLM2 chat wrapper for the planning module.
+"""Chat wrappers for the planning module.
 
-Loading mirrors ``MiniSAModel._init_vision_language_encoder`` (AutoProcessor +
-AutoModelForImageTextToText + 4-bit BitsAndBytesConfig), but exposes a plain
-generative chat interface instead of hidden states:
+``SmolVLMChat`` loads a quantized SmolVLM2 instruct model locally
+(AutoProcessor + AutoModelForImageTextToText + 4-bit BitsAndBytesConfig) and
+exposes a multimodal generative chat interface:
 
 - ``chat(images, system, user) -> str`` — one multimodal turn, returns the
   generated text.
@@ -13,6 +13,10 @@ generative chat interface instead of hidden states:
   "continue the current subtask").
 
 Only the current frames are ever passed in; no images are stored between calls.
+
+``OpenAIChat`` wraps an OpenAI-compatible HTTP client (e.g. a local
+``transformers serve`` endpoint) behind the same ``chat`` / ``chat_json``
+signature so it can be used by the planner; images are currently ignored.
 """
 
 from __future__ import annotations
@@ -22,6 +26,7 @@ import logging
 
 import numpy as np
 import torch
+from openai import OpenAI
 from transformers import AutoModelForImageTextToText, AutoProcessor, BitsAndBytesConfig
 
 from .config import PlannerConfig
@@ -186,4 +191,86 @@ class SmolVLMChat:
                 )
                 prompt = f"{user}\n\n{_JSON_RETRY_REMINDER}"
         logger.warning("planning VLM failed to produce JSON twice; using fallback %r", fallback)
+        return dict(fallback)
+
+
+class OpenAIChat:
+    """OpenAI-compatible chat client for a local or remote ``/v1`` endpoint.
+
+    Thin wrapper around :class:`openai.OpenAI` matching the notebook usage
+    against ``transformers serve`` (e.g. Qwen3.5). Same ``chat`` /
+    ``chat_json`` signature as :class:`SmolVLMChat` so it can be swapped into
+    the planner; images are currently ignored (text-only prompts).
+    """
+
+    def __init__(
+        self,
+        *,
+        base_url: str = "http://localhost:8000/v1",
+        api_key: str = "not-needed",
+        model: str = "Qwen/Qwen3.5-4B",
+        max_tokens: int = 81920,
+        temperature: float = 1.0,
+        top_p: float = 0.95,
+        presence_penalty: float = 1.5,
+        enable_thinking: bool = False,
+    ) -> None:
+        self.client = OpenAI(base_url=base_url, api_key=api_key)
+        self.model = model
+        self.max_tokens = max_tokens
+        self.temperature = temperature
+        self.top_p = top_p
+        self.presence_penalty = presence_penalty
+        self.enable_thinking = enable_thinking
+
+    def chat(self, images: list[np.ndarray], system: str, user: str) -> str:
+        """Run one chat turn and return the generated text.
+
+        ``images`` are accepted for API compatibility with
+        :class:`SmolVLMChat` but are not sent to the server yet.
+        """
+        del images  # text-only endpoint for now
+        parts = [part for part in (system, user) if part]
+        query = "\n\n".join(parts)
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "user", "content": query}],
+            max_tokens=self.max_tokens,
+            temperature=self.temperature,
+            top_p=self.top_p,
+            presence_penalty=self.presence_penalty,
+            extra_body={
+                "chat_template_kwargs": {"enable_thinking": self.enable_thinking},
+            },
+        )
+        content = response.choices[0].message.content
+        return (content or "").strip()
+
+    def chat_json(
+        self,
+        images: list[np.ndarray],
+        system: str,
+        user: str,
+        fallback: dict,
+    ) -> dict:
+        """``chat`` + tolerant JSON parsing, one retry, then ``fallback``.
+
+        Never raises on model misbehavior: if neither the first reply nor the
+        retry contains a parseable JSON object, returns ``fallback``.
+        """
+        prompt = user
+        for attempt in range(2):
+            reply = self.chat(images, system, prompt)
+            try:
+                return extract_json(reply)
+            except ValueError:
+                logger.warning(
+                    "OpenAI chat reply was not valid JSON (attempt %d): %r",
+                    attempt + 1,
+                    reply,
+                )
+                prompt = f"{user}\n\n{_JSON_RETRY_REMINDER}"
+        logger.warning(
+            "OpenAI chat failed to produce JSON twice; using fallback %r", fallback
+        )
         return dict(fallback)

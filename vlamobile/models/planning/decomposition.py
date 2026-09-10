@@ -2,7 +2,7 @@
 
 ``decompose`` is stateless: each call runs one Decompose prompt on the current
 camera frames and returns a fresh :class:`~.types.PlannerState`. It takes a
-shared :class:`~.vlm.SmolVLMChat` instance so the quantized model is loaded
+shared :class:`~.vlm.OpenAIChat` instance so the chat client is created
 once and reused by the monitor.
 """
 
@@ -15,7 +15,7 @@ import numpy as np
 
 from .prompts import build_decompose_prompt
 from .types import PlannerState, Subtask, SubtaskStatus
-from .vlm import SmolVLMChat
+from .vlm import OpenAIChat
 
 logger = logging.getLogger(__name__)
 
@@ -49,18 +49,21 @@ def _snap_to_vocabulary(subtask: str, vocabulary: list[str]) -> str | None:
 
 
 def decompose(
-    vlm: SmolVLMChat,
+    vlm: OpenAIChat,
+    environment: str,
+    robot_structure: str,
     task: str,
     images: dict[str, np.ndarray],
     predefined_tasks: list[str] | None = None,
+    max_subtasks: int = 8,
+    notes: str = "",
 ) -> PlannerState:
     """Run one Decompose call and return a fresh plan.
 
     Parameters
     ----------
-    vlm : SmolVLMChat
-        Shared chat wrapper (the same instance used by the monitor, so the
-        quantized model is loaded once).
+    vlm : OpenAIChat
+        Shared chat wrapper (the same instance used by the monitor).
     task : str
         The composite task (e.g. "Stack the small cube on the medium
         cube, then move the stack to the blue platform").
@@ -72,6 +75,8 @@ def decompose(
         prompt constrains the model to it and each parsed subtask is
         snapped to its closest entry (fuzzy match); subtasks that cannot
         be snapped are dropped.
+    max_subtasks : int
+        Upper bound on plan length (from ``PlannerConfig``).
 
     Returns
     -------
@@ -81,9 +86,8 @@ def decompose(
         produces no usable subtasks, the plan degrades to the composite
         task itself as a single subtask.
     """
-    max_subtasks = vlm.cfg.max_subtasks
     system, user = build_decompose_prompt(
-        task, max_subtasks, predefined_tasks=predefined_tasks
+        environment, robot_structure, task, max_subtasks, predefined_tasks=predefined_tasks, notes=notes
     )
     reply = vlm.chat_json(
         list(images.values()), system, user, fallback={"subtasks": [task]}

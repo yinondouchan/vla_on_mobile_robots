@@ -12,7 +12,7 @@ from lerobot.policies.pretrained import PreTrainedPolicy
 from lerobot.utils.control_utils import predict_action
 
 from vlamobile.models.planning.config import PlannerConfig
-from vlamobile.models.planning.planning import SmolVLMPlanner
+from vlamobile.models.planning.planning import Planner
 
 
 class LerobotInference:
@@ -83,7 +83,7 @@ class LerobotInference:
 
 
 class LerobotInferenceWithPlanner:
-    """Hierarchical controller: high-level SmolVLM plan + low-level VLA execution.
+    """Hierarchical controller: high-level planner + low-level VLA execution.
 
     Drop-in replacement for :class:`LerobotInference`. On each episode it
     decomposes the composite ``task`` into subtasks, periodically monitors
@@ -98,7 +98,7 @@ class LerobotInferenceWithPlanner:
         dataset_repo_id: str = "YinonDouchan/mobile_robot_lift_v1",
         robot_type: str = "custom_mobile_robot",
         grip_threshold: float = 0.5,
-        planner: SmolVLMPlanner | None = None,
+        planner: Planner | None = None,
         planner_cfg: PlannerConfig | None = None,
         predefined_tasks: list[str] | None = None,
         monitor_every: int = 30,
@@ -112,7 +112,7 @@ class LerobotInferenceWithPlanner:
         self.planner = (
             planner
             if planner is not None
-            else SmolVLMPlanner(cfg=planner_cfg, predefined_tasks=predefined_tasks)
+            else Planner(cfg=planner_cfg, predefined_tasks=predefined_tasks)
         )
         self.predefined_tasks = predefined_tasks
         self.monitor_every = monitor_every

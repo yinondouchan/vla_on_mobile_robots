@@ -9,7 +9,7 @@ import torch
 
 @dataclass
 class PlannerConfig:
-    """Configuration for `SmolVLMPlanner`.
+    """Configuration for `Planner`.
 
     Plain dataclass (not a LeRobot policy config): the planner sits above the
     VLA policy and is not itself a policy, so no registration is needed.
@@ -17,6 +17,7 @@ class PlannerConfig:
 
     # Model loading (mirrors MiniSAModel._init_vision_language_encoder).
     model_name: str = "HuggingFaceTB/SmolVLM2-2.2B-Instruct"
+    # model_name: str = "smolagents/SmolVLM2-2.2B-Instruct-Agentic-GUI"
     device: str | None = None  # resolved to "cuda" if available, else "cpu"
     load_in_4bit: bool = True
     torch_dtype: str = "bfloat16"

@@ -16,7 +16,7 @@ import numpy as np
 
 from .prompts import build_assess_prompt, build_decide_prompt
 from .types import PlannerState, Subtask, SubtaskAssessment, SubtaskStatus
-from .vlm import SmolVLMChat
+from .vlm import OpenAIChat
 
 logger = logging.getLogger(__name__)
 
@@ -24,18 +24,22 @@ _VALID_DECIDE_ACTIONS = ("continue", "advance", "retry", "replan")
 
 
 def assess_subtask(
-    vlm: SmolVLMChat,
+    vlm: OpenAIChat,
     state: PlannerState,
+    
+    environment: str,
+    robot_structure: str,
     images: dict[str, np.ndarray],
     *,
     step: int | None = None,
     predefined_tasks: list[str] | None = None,
+    max_history_entries: int = 30,
 ) -> SubtaskAssessment:
     """Assess the current subtask from observations and update ``state``.
 
     Parameters
     ----------
-    vlm : SmolVLMChat
+    vlm : OpenAIChat
         Shared chat wrapper (same instance used by ``decompose``).
     state : PlannerState
         Episode plan + text history; mutated in place.
@@ -49,6 +53,8 @@ def assess_subtask(
         When given, a Decide ``replan`` replacement is snapped to this
         vocabulary; unmatchable replacements fall back to retrying the
         current subtask.
+    max_history_entries : int
+        History truncation for prompts (from ``PlannerConfig``).
 
     Returns
     -------
@@ -66,7 +72,7 @@ def assess_subtask(
             rationale="All subtasks are already complete.",
         )
 
-    assessment = _assess(vlm, state, current, images)
+    assessment = _assess(vlm, state, environment, robot_structure, current, images, max_history_entries=max_history_entries)
     state.add_history(
         f"[step {step_idx}] {current.description!r}: "
         f"progress {assessment.progress:.2f}, {assessment.status.value}"
@@ -93,14 +99,20 @@ def _image_list(images: dict[str, np.ndarray]) -> list[np.ndarray]:
 
 
 def _assess(
-    vlm: SmolVLMChat,
+    vlm: OpenAIChat,
     state: PlannerState,
+    environment: str,
+    robot_structure: str,
     current: Subtask,
     images: dict[str, np.ndarray],
+    *,
+    max_history_entries: int = 30,
 ) -> SubtaskAssessment:
     system, user = build_assess_prompt(
+        environment,
+        robot_structure,
         current.description,
-        state.render(vlm.cfg.max_history_entries),
+        state.render(max_history_entries),
     )
     fallback = {
         "progress": 0.0,
@@ -129,7 +141,7 @@ def _parse_assessment(reply: dict) -> SubtaskAssessment:
     return SubtaskAssessment(progress=progress, status=status, rationale=rationale)
 
 # def _decide(
-#     vlm: SmolVLMChat,
+#     vlm: OpenAIChat,
 #     state: PlannerState,
 #     current: Subtask,
 #     assessment: SubtaskAssessment,
@@ -140,7 +152,7 @@ def _parse_assessment(reply: dict) -> SubtaskAssessment:
 # ) -> None:
 #     """Run Decide after a terminal assessment and apply the chosen action."""
 #     system, user = build_decide_prompt(
-#         state.render(vlm.cfg.max_history_entries),
+#         state.render(max_history_entries),
 #         assessment.progress,
 #         assessment.status.value,
 #         assessment.rationale,

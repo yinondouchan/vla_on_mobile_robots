@@ -23,6 +23,7 @@ class Sim:
         dataset_repo_id: str = "YinonDouchan/mobile_robot_lift_v1",
         local_data_root: str = "data",
         policy_path: str = "YinonDouchan/smolvla_mobile_robot_lift_v1",
+        use_policy_planner: bool = False,
         task: str = "Pick up the small cube",
         policy_task: str = "Pick up the small cube",
         framerate: float = 30.0,
@@ -75,16 +76,9 @@ class Sim:
 
         self.policy_control = None
         if not record or compare_policy:
-            self.policy_control = PolicyControl(policy_path, dataset_repo_id)
+            self.policy_control = PolicyControl(policy_path, dataset_repo_id, use_policy_planner=use_policy_planner)
 
-        pygame.init()
-        pygame.joystick.init()
-        if pygame.joystick.get_count() > 0:
-            joystick = pygame.joystick.Joystick(0)
-            joystick.init()
-        else:
-            joystick = None
-        self.joystick_control = JoystickControl(joystick)
+        self.joystick_control = JoystickControl()
 
         obs, _ = self.env.reset()
         self.obs = obs
@@ -227,6 +221,7 @@ def main(
     dataset_repo_id="YinonDouchan/mobile_robot_lift_v1",
     local_data_root="data",
     policy_path="YinonDouchan/smolvla_mobile_robot_lift_v1",
+    use_policy_planner: bool = False,
     task="Pick up the small cube",
     policy_task="Pick up the small cube",
     framerate: float = 30.0,
@@ -241,6 +236,7 @@ def main(
         dataset_repo_id=dataset_repo_id,
         local_data_root=local_data_root,
         policy_path=policy_path,
+        use_policy_planner=use_policy_planner,
         task=task,
         policy_task=policy_task,
         framerate=framerate,

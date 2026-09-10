@@ -1,13 +1,13 @@
 import numpy as np
 import pygame
 
-from vlamobile.inference import LerobotInference
+from vlamobile.inference import LerobotInference, LerobotInferenceWithPlanner
 # from lerobot.policies.rtc import RTCConfig, ActionQueue
 # from lerobot.configs import RTCAttentionSchedule
 
 
 class JoystickControl:
-    def __init__(self, joystick: pygame.joystick.Joystick):
+    def __init__(self):
         pygame.init()
         pygame.joystick.init()
 
@@ -16,6 +16,8 @@ class JoystickControl:
             joystick.init()
         else:
             joystick = None
+
+        self.joystick = joystick
 
         self.forward = 0.0
         self.turn = 0.0
@@ -54,13 +56,19 @@ class JoystickControl:
 
 
 class PolicyControl:
-    def __init__(self, policy_path, dataset_repo_id):
-        self.policy = LerobotInference(
-            policy_path=policy_path,
-            dataset_repo_id=dataset_repo_id,
-            robot_type="custom_mobile_robot",
-        )
-        self.policy.reset()
+    def __init__(self, policy_path, dataset_repo_id, use_policy_planner: bool = False):
+        if use_policy_planner:
+            self.policy = LerobotInferenceWithPlanner(
+                policy_path=policy_path,
+                dataset_repo_id=dataset_repo_id,
+                robot_type="custom_mobile_robot",
+            )
+        else:
+            self.policy = LerobotInference(
+                policy_path=policy_path,
+                dataset_repo_id=dataset_repo_id,
+                robot_type="custom_mobile_robot",
+            )
 
     def __call__(self, state, frames, task: str):
         action = self.policy.predict(state=state, images=frames, task=task)

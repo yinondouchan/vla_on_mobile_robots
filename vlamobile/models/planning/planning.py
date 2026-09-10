@@ -1,13 +1,13 @@
-"""SmolVLM-based task planner: public API over decompose + assess.
+"""Task planner: public API over decompose + assess.
 
-`SmolVLMPlanner` owns a shared :class:`~.vlm.SmolVLMChat` and the episode
+`Planner` owns a shared :class:`~.vlm.OpenAIChat` and the episode
 :class:`~.types.PlannerState`. Decomposition and assessment logic live in
 :mod:`.decomposition` and :mod:`.assessment`; this class wires them into a
 stateful per-episode controller for the VLA policy.
 
 Typical usage::
 
-    planner = SmolVLMPlanner()
+    planner = Planner()
     planner.decompose("Stack the small cube on the medium cube, then ...", frames)
     ...
     action = policy.predict(task=planner.current_subtask(), ...)
@@ -24,21 +24,21 @@ from .assessment import assess_subtask
 from .config import PlannerConfig
 from .decomposition import decompose
 from .types import PlannerState, SubtaskAssessment
-from .vlm import SmolVLMChat
+from .vlm import OpenAIChat
 
 
-class SmolVLMPlanner:
-    """Stateful planner: holds the VLM + plan state, delegates decompose/assess."""
+class Planner:
+    """Stateful planner: holds the chat backend + plan state, delegates decompose/assess."""
 
     def __init__(
         self,
         cfg: PlannerConfig | None = None,
-        vlm: SmolVLMChat | None = None,
+        vlm: OpenAIChat | None = None,
         predefined_tasks: list[str] | None = None,
     ) -> None:
         self.cfg = cfg if cfg is not None else PlannerConfig()
-        self.vlm = vlm if vlm is not None else SmolVLMChat(self.cfg)
-        self.state: PlannerState | None = None        
+        self.vlm = vlm if vlm is not None else OpenAIChat()
+        self.state: PlannerState | None = None
         self._predefined_tasks = predefined_tasks
 
     def reset(self) -> None:
@@ -46,8 +46,15 @@ class SmolVLMPlanner:
         self.state = None
         self._predefined_tasks = None
 
-
-    def decompose(self, task: str, images: dict[str, np.ndarray], predefined_tasks: list[str] | None = None) -> None:
+    def decompose(
+        self,
+        environment: str,
+        robot_structure: str,
+        task: str,
+        images: dict[str, np.ndarray],
+        predefined_tasks: list[str] | None = None,
+        notes: str = "",
+    ) -> None:
         """
         Decompose the given task using the VLM and images, and initialize the planner state.
 
@@ -66,23 +73,29 @@ class SmolVLMPlanner:
         """
         self.state = decompose(
             self.vlm,
+            environment,
+            robot_structure,
             task,
             images,
             predefined_tasks=predefined_tasks,
+            max_subtasks=self.cfg.max_subtasks,
+            notes=notes,
         )
         self._predefined_tasks = predefined_tasks
 
-    def assess(self, images: dict[str, np.ndarray], step: int | None = None) -> SubtaskAssessment:
+    def assess(self, environment: str, robot_structure: str, images: dict[str, np.ndarray], step: int | None = None) -> SubtaskAssessment:
         """
         Assess the current subtask using the VLM and images, and update the planner state.
         """
         self.state = assess_subtask(
             self.vlm,
             self.state,
+            environment,
+            robot_structure,
             images,
+            max_history_entries=self.cfg.max_history_entries,
         )
 
-        
     def current_subtask(self) -> str:
         """Subtask the VLA policy should be conditioned on right now.
 
@@ -93,6 +106,8 @@ class SmolVLMPlanner:
 
     def step(
         self,
+        environment: str,
+        robot_structure: str,
         images: dict[str, np.ndarray],
         *,
         step: int | None = None,
@@ -107,15 +122,18 @@ class SmolVLMPlanner:
         return assess_subtask(
             self.vlm,
             state,
+            environment,
+            robot_structure,
             images,
             step=step,
             predefined_tasks=self._predefined_tasks,
+            max_history_entries=self.cfg.max_history_entries,
         )
 
     def history_text(self) -> str:
         """Rendered plan + history for logging / debugging."""
         state = self._require_state()
-        return state.render(self.vlm.cfg.max_history_entries)
+        return state.render(self.cfg.max_history_entries)
 
     def _require_state(self) -> PlannerState:
         if self.state is None:
