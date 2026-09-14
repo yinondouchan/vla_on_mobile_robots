@@ -7,6 +7,7 @@ import pygame
 import os
 import fire
 import time
+from PIL import Image
 
 from vlamobile.controls import JoystickControl, PolicyControl
 from vlamobile.recording import LeRobotRecorder, RecorderConfig, DEFAULT_RESOLUTION
@@ -44,6 +45,7 @@ class Sim:
         self.recorder_discard_episode = False
         self.recorder_finalize = False
         self.reset_environment = False
+        self.save_observation = False
         self.current_task = None
         self.joystick_override = False
         self.policy_frame_count = 0
@@ -104,6 +106,25 @@ class Sim:
             print(
                 f"Joystick override {'enabled' if self.joystick_override else 'disabled'}"
             )
+        elif keycode == glfw.KEY_U:
+            self.save_observation = True
+
+    def save_observation_to_disk(self, frames: dict[str, np.ndarray], state: np.ndarray) -> None:
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        out_dir = os.path.join("saved_observations", timestamp)
+        os.makedirs(out_dir, exist_ok=True)
+        np.save(os.path.join(out_dir, "state.npy"), state)
+
+        for camera_name, image in frames.items():
+            img = np.asarray(image)
+            if img.dtype != np.uint8:
+                if np.nanmax(img) <= 1.0:
+                    img = (np.clip(img, 0.0, 1.0) * 255.0).astype(np.uint8)
+                else:
+                    img = np.clip(img, 0, 255).astype(np.uint8)
+            Image.fromarray(img).save(os.path.join(out_dir, f"{camera_name}.png"))
+
+        print(f"Saved observation to {out_dir}")
 
     def handle_recorder_events(self, task_fn, task_fn_kwargs=None):
         if self.reset_environment:
@@ -128,7 +149,7 @@ class Sim:
         elif self.recorder_finalize:
             self.recorder_finalize = False
             self.lerobot_recorder.finalize()
-            print("Finalizing recording")
+            print("Finalizing recording")    
 
     def handle_policy_events(self):
         if self.reset_environment:
@@ -192,6 +213,10 @@ class Sim:
                     for k, v in self.obs.items()
                     if k.startswith("observation.images.")
                 }
+
+                if self.save_observation:
+                    self.save_observation = False
+                    self.save_observation_to_disk(frames, self.obs["observation.state"])
 
                 action = self.get_next_action(frames)
 
