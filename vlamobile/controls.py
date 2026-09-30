@@ -1,10 +1,6 @@
 import numpy as np
 import pygame
 
-from vlamobile.inference import LerobotInference, LerobotInferenceWithPlanner
-# from lerobot.policies.rtc import RTCConfig, ActionQueue
-# from lerobot.configs import RTCAttentionSchedule
-
 
 class JoystickControl:
     def __init__(self):
@@ -53,51 +49,3 @@ class JoystickControl:
         self.turn = 0.0
         self.lift = 0.0
         self.grip = 0.0
-
-
-class PolicyControl:
-    def __init__(self, policy_path, dataset_repo_id, use_policy_planner: bool = False):
-        if use_policy_planner:
-            self.policy = LerobotInferenceWithPlanner(
-                policy_path=policy_path,
-                dataset_repo_id=dataset_repo_id,
-                robot_type="custom_mobile_robot",
-            )
-        else:
-            self.policy = LerobotInference(
-                policy_path=policy_path,
-                dataset_repo_id=dataset_repo_id,
-                robot_type="custom_mobile_robot",
-            )
-
-    def __call__(self, state, frames, task: str):
-        action = self.policy.predict(state=state, images=frames, task=task)
-        return action
-
-    def reset(self):
-        self.policy.reset()
-
-
-# class AsynchronousPolicyControl:
-#       def __init__(self, policy_path, dataset_repo_id):
-#         self.policy = LerobotInference(
-#           policy_path=policy_path,
-#           dataset_repo_id=dataset_repo_id,
-#           robot_type="custom_mobile_robot",
-#         )
-#         self.policy.reset()
-#         self.policy.cfg.rtc_config = RTCConfig(
-#           enabled=True,
-#           execution_horizon=10,  # How many steps to blend with previous chunk
-#           max_guidance_weight=10.0,  # How strongly to enforce consistency
-#           prefix_attention_schedule=RTCAttentionSchedule.EXP,  # Exponential blend
-#         )
-#         self.action_queue = ActionQueue(self.policy.cfg.rtc_config)
-
-
-#       def __call__(self, state, frames, task: str):
-#         action = self.policy.predict(state=state, images=frames, task=task)
-#         return action
-
-#       def reset(self):
-#           self.policy.reset()

@@ -9,7 +9,7 @@ from lerobot.configs.policies import PreTrainedConfig
 from lerobot.datasets.dataset_metadata import LeRobotDatasetMetadata
 from lerobot.policies.factory import make_policy, make_pre_post_processors
 from lerobot.policies.pretrained import PreTrainedPolicy
-from lerobot.utils.control_utils import predict_action
+from lerobot.common.control_utils import predict_action
 
 from vlamobile.models.planning.config import PlannerConfig
 from vlamobile.models.planning.planning import Planner

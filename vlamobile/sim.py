@@ -9,7 +9,9 @@ import fire
 import time
 from PIL import Image
 
-from vlamobile.controls import JoystickControl, PolicyControl
+from vlamobile.controls import JoystickControl
+from vlamobile.inference import LerobotInference, LerobotInferenceWithPlanner
+from vlamobile.models.frozen_vla.inference import FrozenVLAInference
 from vlamobile.recording import LeRobotRecorder, RecorderConfig, DEFAULT_RESOLUTION
 from vlamobile.tasks import tasks
 
@@ -23,8 +25,7 @@ class Sim:
         env_hf_path: str = "YinonDouchan/mobile_robot_lift_env@main",
         dataset_repo_id: str = "YinonDouchan/mobile_robot_lift_v1",
         local_data_root: str = "data",
-        policy_path: str = "YinonDouchan/smolvla_mobile_robot_lift_v1",
-        use_policy_planner: bool = False,
+        policy=None,
         task: str = "Pick up the small cube",
         policy_task: str = "Pick up the small cube",
         framerate: float = 30.0,
@@ -76,9 +77,7 @@ class Sim:
                 recorder_config.resume = True
             self.lerobot_recorder = LeRobotRecorder(recorder_config)
 
-        self.policy_control = None
-        if not record or compare_policy:
-            self.policy_control = PolicyControl(policy_path, dataset_repo_id, use_policy_planner=use_policy_planner)
+        self.policy = policy
 
         self.joystick_control = JoystickControl()
 
@@ -155,10 +154,10 @@ class Sim:
         if self.reset_environment:
             self.reset_environment = False
             self.env.reset()
-            self.policy_control.reset()
+            self.policy.reset()
             self.policy_frame_count = 0
         if self.joystick_override:
-            self.policy_control.reset()
+            self.policy.reset()
 
   
     def get_next_action(self, frames: dict[str, np.ndarray]) -> np.ndarray:
@@ -175,8 +174,8 @@ class Sim:
             self.handle_recorder_events(task_fn=tasks[self.task])
 
             if self.compare_policy:
-                test_action = self.policy_control(
-                    state=self.state, frames=frames, task=self.task
+                test_action = self.policy.predict(
+                    state=self.state, images=frames, task=self.task
                 )
                 print(test_action)
 
@@ -189,8 +188,8 @@ class Sim:
             elif self.policy_frame_count < self.policy_wait_frames:
                 action = np.zeros((1, 4), dtype=np.float64)
             else:
-                action = self.policy_control(
-                    state=self.state, frames=frames, task=self.policy_task
+                action = self.policy.predict(
+                    state=self.state, images=frames, task=self.policy_task
                 )
 
             self.policy_frame_count += 1
@@ -238,6 +237,53 @@ class Sim:
         self.env.close()
 
 
+def _camera_keys(camera_keys: str | list[str] | None) -> list[str] | None:
+    if camera_keys is None:
+        return None
+    if isinstance(camera_keys, str):
+        return [key.strip() for key in camera_keys.split(",") if key.strip()]
+    return list(camera_keys)
+
+
+def make_policy(
+    policy_path: str,
+    dataset_repo_id: str,
+    policy_type: str = "lerobot",
+    use_policy_planner: bool = False,
+    camera_keys: str | list[str] | None = None,
+    n_action_steps: int | None = None,
+):
+    """Build a policy with ``predict`` and ``reset``.
+
+    ``policy_path`` is a LeRobot Hub id or local checkpoint, or a FrozenVLA
+    directory containing ``frozen_vla_config.pt`` and ``action_head.pt``.
+    ``dataset_repo_id`` is used only for ``policy_type="lerobot"``.
+    ``camera_keys`` is a list or a comma-separated string, used only for
+    ``policy_type="frozen_vla"``.
+    """
+    if policy_type == "lerobot":
+        if use_policy_planner:
+            return LerobotInferenceWithPlanner(
+                policy_path=policy_path,
+                dataset_repo_id=dataset_repo_id,
+                robot_type="custom_mobile_robot",
+            )
+        return LerobotInference(
+            policy_path=policy_path,
+            dataset_repo_id=dataset_repo_id,
+            robot_type="custom_mobile_robot",
+        )
+    if policy_type == "frozen_vla":
+        if use_policy_planner:
+            raise ValueError("use_policy_planner is only supported for policy_type='lerobot'")
+        return FrozenVLAInference(
+            policy_path,
+            camera_keys=_camera_keys(camera_keys),
+            n_action_steps=n_action_steps,
+        )
+    raise ValueError(f"unknown policy_type {policy_type!r}; expected 'lerobot' or 'frozen_vla'")
+
+
 def main(
     record: bool = True,
     disable_control: bool = False,
@@ -246,13 +292,26 @@ def main(
     dataset_repo_id="YinonDouchan/mobile_robot_lift_v1",
     local_data_root="data",
     policy_path="YinonDouchan/smolvla_mobile_robot_lift_v1",
+    policy_type: str = "lerobot",
     use_policy_planner: bool = False,
+    camera_keys: str | list[str] | None = None,
+    n_action_steps: int | None = None,
     task="Pick up the small cube",
     policy_task="Pick up the small cube",
     framerate: float = 30.0,
     policy_wait_frames: int = 30,
     render_camera_name: str = "sideview",
 ):
+    policy = None
+    if not record or compare_policy:
+        policy = make_policy(
+            policy_path,
+            dataset_repo_id,
+            policy_type=policy_type,
+            use_policy_planner=use_policy_planner,
+            camera_keys=camera_keys,
+            n_action_steps=n_action_steps,
+        )
     sim = Sim(
         record=record,
         disable_control=disable_control,
@@ -260,8 +319,7 @@ def main(
         env_hf_path=env_hf_path,
         dataset_repo_id=dataset_repo_id,
         local_data_root=local_data_root,
-        policy_path=policy_path,
-        use_policy_planner=use_policy_planner,
+        policy=policy,
         task=task,
         policy_task=policy_task,
         framerate=framerate,
