@@ -68,7 +68,7 @@ def _snap_to_vocabulary(subtask: str, vocabulary: list[str]) -> str | None:
     return None
 
 
-def _parse_subtasks(
+def parse_subtasks(
     reply: dict,
     predefined_tasks: list[str] | None,
     max_subtasks: int,
@@ -329,7 +329,7 @@ class Planner:
         )
         messages = _build_messages(list(images.values()), system, user)
         reply = self.vlm.chat_json(messages, fallback={"subtasks": [task]})
-        subtasks = _parse_subtasks(reply, predefined_tasks, max_subtasks)
+        subtasks = parse_subtasks(reply, predefined_tasks, max_subtasks)
 
         if not subtasks:
             logger.warning(

@@ -71,6 +71,11 @@ def pick_and_place_single_cube_single_platform():
 def pick_and_place_single_cube_multi_platform():
   return f"Pick up the cube and place it on the {random.choice(['red', 'green', 'blue'])} platform"
 
+def pick_and_place_subtasks():
+  return random.choice(
+    ["Go to cube", "Pick up cube", "Go to red platform", "Go to green platform", "Go to blue platform", "Put down cube"]
+  )
+
 
 def pick_up_cube():
   return f"Pick up the {random.choice(['red', 'green', 'blue'])} cube"
@@ -92,6 +97,7 @@ tasks = {
   "pick_up_cube": pick_up_cube,
   "pick_up_cube_single": pick_up_cube_single,
   "pick_and_place": pick_and_place,
+  "pick_and_place_subtasks": pick_and_place_subtasks,
   "pick_and_place_single_cube_single_platform": pick_and_place_single_cube_single_platform,
   "pick_and_place_single_cube_multi_platform": pick_and_place_single_cube_multi_platform,
   "turn_to_cube": turn_to_cube,

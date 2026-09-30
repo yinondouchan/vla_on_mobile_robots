@@ -40,7 +40,7 @@ class SubtaskAssessment:
 class PlannerState:
     """Full planner state for one episode: the plan plus a text-only history."""
 
-    task: str
+    task: str | None = None
     subtasks: list[Subtask] = field(default_factory=list)
     current_index: int = 0
     history: list[str] = field(default_factory=list)
