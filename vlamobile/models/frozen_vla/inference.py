@@ -15,6 +15,7 @@ import torch
 
 from .config import FrozenVLAConfig
 from .model import FrozenVLAModel, _MODEL_CONFIG_NAME
+from .norm import NORM_STATS_NAME, normalize, unnormalize
 
 _DEFAULT_CAMERA_KEYS = ("robotfrontview_high", "robotfrontview")
 
@@ -36,6 +37,17 @@ class FrozenVLAInference:
             weights_only=True,
         )
         cfg = FrozenVLAConfig(**cfg_dict)
+        stats_path = checkpoint_dir / NORM_STATS_NAME
+        if not stats_path.is_file():
+            raise FileNotFoundError(
+                f"missing {NORM_STATS_NAME} in {checkpoint_dir}; retrain so the checkpoint includes dataset mean/std"
+            )
+        stats = torch.load(stats_path, map_location="cpu", weights_only=True)
+        self.state_mean = stats["state_mean"]
+        self.state_std = stats["state_std"]
+        self.action_mean = stats["action_mean"]
+        self.action_std = stats["action_std"]
+
         self.model = FrozenVLAModel(cfg)
         self.model.load_action_head(checkpoint_dir)
         self.model.eval()
@@ -72,8 +84,10 @@ class FrozenVLAInference:
         images: dict[str, np.ndarray],
         task: str,
     ) -> None:
-        state_tensor = torch.from_numpy(
-            np.asarray(state, dtype=np.float32).reshape(1, -1)
+        state_tensor = normalize(
+            torch.from_numpy(np.asarray(state, dtype=np.float32).reshape(1, -1)),
+            self.state_mean,
+            self.state_std,
         )
         sample_images = [images[key] for key in self.camera_keys]
         with torch.no_grad():
@@ -84,6 +98,10 @@ class FrozenVLAInference:
                     "state": state_tensor,
                 }
             )
-        chunk = actions[0, : self.n_action_steps].detach().cpu().numpy().astype(np.float64)
+        chunk = unnormalize(
+            actions[0, : self.n_action_steps].detach().cpu(),
+            self.action_mean,
+            self.action_std,
+        ).numpy().astype(np.float64)
         for row in chunk:
             self._queue.append(row.reshape(1, -1))

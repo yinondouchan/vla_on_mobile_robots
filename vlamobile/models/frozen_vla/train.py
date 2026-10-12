@@ -12,6 +12,7 @@ from transformers.trainer import TRAINING_ARGS_NAME
 
 from .config import FrozenVLAConfig
 from .model import FrozenVLAModel
+from .norm import NORM_STATS_NAME, normalize_batch, norm_stats_from_dataset
 
 
 def frozen_vla_collate_fn(features: list[dict], camera_keys: list[str]) -> dict:
@@ -46,6 +47,7 @@ class FrozenVLATrainer(Trainer):
         output_dir = Path(output_dir if output_dir is not None else self.args.output_dir)
         model = self.accelerator.unwrap_model(self.model, keep_torch_compile=False)
         model.save_pretrained(output_dir)
+        torch.save(self.norm_stats, output_dir / NORM_STATS_NAME)
         torch.save(self.args, output_dir / TRAINING_ARGS_NAME)
 
 
@@ -96,8 +98,11 @@ def main(cfg: TrainConfig):
         delta_timestamps=delta_timestamps,
     )
 
+    norm_stats = norm_stats_from_dataset(meta.stats)
+
     def collate_fn(features: list[dict]) -> dict:
-        return frozen_vla_collate_fn(features, cfg.camera_keys)
+        batch = frozen_vla_collate_fn(features, cfg.camera_keys)
+        return normalize_batch(batch, norm_stats)
 
     trainer = FrozenVLATrainer(
         model=model,
@@ -107,6 +112,7 @@ def main(cfg: TrainConfig):
         data_collator=collate_fn,
         compute_metrics=frozen_vla_compute_metrics,
     )
+    trainer.norm_stats = norm_stats
     trainer.train()
     trainer.save_model()
 
