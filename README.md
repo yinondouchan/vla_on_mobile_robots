@@ -15,7 +15,7 @@ This repo provides an end-to-end loop:
 3. **Evaluate** — Run policies in sim, compare against ground-truth actions, and inspect alignment.
 4. **Run Policy** (sim.py, record=False) — Run trained policy in simulator.
 
-The custom Gymnasium environment lives in `vlamobile/env.py` and is published to Hugging Face for remote loading during training and eval (via the upload_env.py script). Currently, the published environment can be found in huggingface in YinonDouchan/mobile_robot_lift_env.
+The custom Gymnasium environment lives in `vlamobile/environments/mobile_robot_lift/` and is published to Hugging Face for remote loading during training and eval (via `upload_env.py`). Currently, the published environment can be found in huggingface in YinonDouchan/mobile_robot_lift_env.
 
 ## Project structure
 
@@ -27,19 +27,19 @@ The custom Gymnasium environment lives in `vlamobile/env.py` and is published to
 │       ├── meshes/             # STL meshes (box, cup, …)
 │       └── textures/           # PNG textures (floor, wood, ceramic, …)
 ├── vlamobile/
-│   ├── env.py                  # make_env() for multi cube multi platform setting
-│   ├── env_multi_cube_single_platform.py   # make_env() for multi cube single platform setting
-│   ├── env_multi_cube_single_platform.py   # make_env() for multi cube single platform with egocentric cameras setting
-│   ├── env_single_cube_single_platform.py   # make_env() for single cube single platform setting
-│   ├── env_single_cube_multi_platform.py   # make_env() for single cube multi platform setting
-│   ├── lift_env.py             # Main environment implementation
-│   ├── sim.py            # Interactive MuJoCo sim: record + policy inference
-│   ├── recording.py            # LeRobot dataset recorder utilities
+│   ├── controls.py             # Shared gamepad control
 │   ├── inference.py            # LeRobot policy inference utilities
-│   ├── tasks.py                # Natural-language task generators
-│   ├── evaluation.py       # Evaluation tools
-│   ├── upload_env.py           # Push env + assets to Hugging Face
-│   └── tag_dataset.py          # Tag datasets with LeRobot v3.0 revision
+│   ├── recording.py            # LeRobot dataset recorder utilities
+│   ├── tag_dataset.py          # Tag datasets with LeRobot v3.0 revision
+│   ├── utils.py                # Shared MuJoCo helpers
+│   └── environments/
+│       └── mobile_robot_lift/  # Lift env, sim, tasks, eval, upload
+│           ├── lift_env.py
+│           ├── env*.py
+│           ├── sim.py
+│           ├── tasks.py
+│           ├── evaluation.py
+│           └── upload_env.py
 ├── pyproject.toml              # Project & dependency configuration
 └── README.md                   # This file
 ```
@@ -73,23 +73,23 @@ Run scripts from the **repository root** so imports and asset paths resolve corr
 ```bash
 export PYTHONPATH="${PWD}"
 # or prefer module invocation:
-python -m vlamobile.sim --help
+python -m vlamobile.environments.mobile_robot_lift.sim --help
 ```
 
 ## Usage
 
 ### Upload the environment to Hugging Face
 
-After changing `vlamobile/env.py` or scene assets:
+After changing `vlamobile/environments/mobile_robot_lift/env.py` or scene assets:
 
 ```bash
-python vlamobile/upload_env.py <huggingface repo name>
+python -m vlamobile.environments.mobile_robot_lift.upload_env <huggingface repo name>
 ```
 
 ### Record demonstrations
 
 ```bash
-python -m vlamobile.sim \
+python -m vlamobile.environments.mobile_robot_lift.sim \
   --record=True \
   --dataset_repo_id=YinonDouchan/mobile_robot_lift_v1 \
   --local_data_root=data \
@@ -125,7 +125,7 @@ lerobot-train \
 ### Run policy in simulation
 
 ```bash
-python -m vlamobile.sim \
+python -m vlamobile.environments.mobile_robot_lift.sim \
   --record=False \
   --compare_policy=True \
   --policy_path=YinonDouchan/smolvla_mobile_robot_lift_v1 \
@@ -135,7 +135,7 @@ python -m vlamobile.sim \
 ### Evaluate single-cube multi-platform  setting
 
 ```bash
-python vlamobile/evaluation.py eval_pick_and_place_single_multi \
+python -m vlamobile.environments.mobile_robot_lift.evaluation eval_pick_and_place_single_multi \
   --dataset_repo_id=YinonDouchan/mobile_robot_lift_pick_and_place_single_multi_egocentric \
   --env_hf_path=YinonDouchan/mobile_robot_lift_env_single_cube_multi_platform_egocentric@main \
   --policy_path=checkpoints/smolvla_mobile_robot_lift_pick_and_place_single_multi_egocentric_v0.1/checkpoints/030000/pretrained_model \
@@ -185,7 +185,7 @@ python vlamobile/evaluation.py eval_pick_and_place_single_multi \
 - **Observations:** `observation.state` (4D proprioception: yaw, lift, grip_r, grip_l), `observation.images.sideview` (480×640 RGB)
 - **Actions:** `[forward, turn, grip, lift]` — velocity-style base control, continuous grip `[0, 1]`, lift height
 
-Task strings are natural-language instructions passed to the recorder and policy (see `vlamobile/tasks.py` for generators like `pick_and_place`, `turn_to_cube`, `turn_right`).
+Task strings are natural-language instructions passed to the recorder and policy (see `vlamobile/environments/mobile_robot_lift/tasks.py` for generators like `pick_and_place`, `turn_to_cube`, `turn_right`).
 
 ## HuggingFace artifacts
 

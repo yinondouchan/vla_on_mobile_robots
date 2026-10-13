@@ -1,5 +1,5 @@
 import gymnasium as gym
-import vlamobile.lift_env  # noqa: F401 — registers LiftMobileRobot-v0
+import vlamobile.environments.mobile_robot_lift.lift_env  # noqa: F401 — registers LiftMobileRobot-v0
 
 
 def make_env(n_envs: int = 1, use_async_envs: bool = False, cfg=None, **env_kwargs):

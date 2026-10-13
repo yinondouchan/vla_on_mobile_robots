@@ -31,11 +31,11 @@ def is_red_cube_on_blue_platform(env_model, env_data):
 
 def _default_model_path() -> Path:
     here = Path(__file__).resolve().parent
-    for base in (here.parent, here):
+    for base in (here, *here.parents):
         path = base / "assets/mobile_robot_lift/scene.xml"
         if path.exists():
             return path
-    return here.parent / "assets/mobile_robot_lift/scene.xml"
+    return Path("assets/mobile_robot_lift/scene.xml")
 
 
 DEFAULT_MODEL_PATH = _default_model_path()
@@ -309,6 +309,6 @@ class LiftEnv(gym.Env):
 
 gym.register(
     id="LiftMobileRobot-v0",
-    entry_point="vlamobile.lift_env:LiftEnv",
+    entry_point="vlamobile.environments.mobile_robot_lift.lift_env:LiftEnv",
     # max_episode_steps=10000,
 )

@@ -10,9 +10,16 @@ import random
 import json
 import os
 from tqdm import tqdm
-from vlamobile.lift_env import is_red_cube_lifted, is_red_cube_on_red_platform, is_red_cube_on_green_platform, is_red_cube_on_blue_platform
-from  vlamobile.tasks import pick_and_place_single_cube_multi_platform
-from vlamobile.lift_env import DEFAULT_MODEL_PATH, LiftEnv, DEFAULT_STATE_NAMES
+from vlamobile.environments.mobile_robot_lift.lift_env import (
+    DEFAULT_MODEL_PATH,
+    DEFAULT_STATE_NAMES,
+    LiftEnv,
+    is_red_cube_lifted,
+    is_red_cube_on_blue_platform,
+    is_red_cube_on_green_platform,
+    is_red_cube_on_red_platform,
+)
+from vlamobile.environments.mobile_robot_lift.tasks import pick_and_place_single_cube_multi_platform
 from vlamobile.inference import LerobotInference
 from vlamobile.recording import DEFAULT_ACTION_NAMES
 

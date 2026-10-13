@@ -1,5 +1,5 @@
 import gymnasium as gym
-import vlamobile.lift_env  # noqa: F401 — registers LiftMobileRobot-v0
+import vlamobile.environments.mobile_robot_lift.lift_env  # noqa: F401 — registers LiftMobileRobot-v0
 
 
 def make_env(n_envs: int = 1, use_async_envs: bool = False, cfg=None, **env_kwargs):
@@ -13,8 +13,12 @@ def make_env(n_envs: int = 1, use_async_envs: bool = False, cfg=None, **env_kwar
     Returns:
         gym.vector.VectorEnv or dict mapping suite names to vectorized envs
     """
-    if cfg is not None:
-        env_kwargs = {**(getattr(cfg, "gym_kwargs", None) or {}), **env_kwargs}
+    env_kwargs = {
+        "hide_red_platform": True,
+        "hide_blue_platform": True,
+        "hide_medium_cube": True,
+        "hide_small_cube": True
+    }
 
     def _make_single_env():
         # Create your custom environment

@@ -1,7 +1,7 @@
 import fire
 from huggingface_hub import HfApi
 
-def main(repo, env_path="vlamobile/env.py"):
+def main(repo, env_path="vlamobile/environments/mobile_robot_lift/env.py"):
     api = HfApi()
     try:
         api.create_repo(repo_id=repo, repo_type="model", exist_ok=True)
@@ -9,7 +9,9 @@ def main(repo, env_path="vlamobile/env.py"):
         print(f"Could not create repo {repo} (it may already exist): {e}")
     files = [
         (env_path, "env.py"),
-        ("vlamobile/lift_env.py", "lift_env.py"),
+        (
+            "vlamobile/environments/mobile_robot_lift/lift_env.py", "lift_env.py"
+        ),
         "assets/mobile_robot_lift/scene.xml",
         "assets/mobile_robot_lift/robot.xml",
         "assets/mobile_robot_lift/textures/light-gray-floor-tile.png",

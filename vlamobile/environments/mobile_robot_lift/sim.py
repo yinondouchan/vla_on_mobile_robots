@@ -13,7 +13,7 @@ from vlamobile.controls import JoystickControl
 from vlamobile.inference import LerobotInference, LerobotInferenceWithPlanner
 from vlamobile.models.frozen_vla.inference import FrozenVLAInference
 from vlamobile.recording import LeRobotRecorder, RecorderConfig, DEFAULT_RESOLUTION
-from vlamobile.tasks import tasks
+from vlamobile.environments.mobile_robot_lift.tasks import tasks
 
 
 class Sim:
