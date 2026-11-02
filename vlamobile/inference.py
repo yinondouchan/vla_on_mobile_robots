@@ -50,6 +50,11 @@ class LerobotInference:
             preprocessor_overrides=preprocessor_overrides
         )
 
+    @property
+    def tasks(self) -> list[str]:
+        """Task prompts of the dataset the policy was trained on."""
+        return list(self._ds_meta.tasks.index)
+
     def reset(self) -> None:
         """Reset policy internal state. Call when the environment is reset."""
         if hasattr(self._policy, "reset"):

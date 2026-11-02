@@ -11,6 +11,7 @@ from PIL import Image
 
 from vlamobile.controls import JoystickControl
 from vlamobile.inference import LerobotInference, LerobotInferenceWithPlanner
+from vlamobile.mcp_policy import McpPolicy
 from vlamobile.models.frozen_vla.inference import FrozenVLAInference
 from vlamobile.recording import LeRobotRecorder, RecorderConfig, DEFAULT_RESOLUTION
 from vlamobile.environments.mobile_robot_lift.tasks import tasks
@@ -184,7 +185,7 @@ class Sim:
             if self.joystick_override:
                 action = self.joystick_control(
                     self.state, frames, task=self.policy_task
-                )
+                )[None]
             elif self.policy_frame_count < self.policy_wait_frames:
                 action = np.zeros((1, 4), dtype=np.float64)
             else:
@@ -252,6 +253,7 @@ def make_policy(
     use_policy_planner: bool = False,
     camera_keys: str | list[str] | None = None,
     n_action_steps: int | None = None,
+    framerate: float = 30.0,
 ):
     """Build a policy with ``predict`` and ``reset``.
 
@@ -260,7 +262,16 @@ def make_policy(
     ``dataset_repo_id`` is used only for ``policy_type="lerobot"``.
     ``camera_keys`` is a list or a comma-separated string, used only for
     ``policy_type="frozen_vla"``.
+    ``policy_type="mcp"`` serves the robot over MCP, with the LeRobot policy at
+    ``policy_path`` available to the client as subtasks.
     """
+    if policy_type == "mcp":
+        vla = LerobotInference(
+            policy_path=policy_path,
+            dataset_repo_id=dataset_repo_id,
+            robot_type="custom_mobile_robot",
+        )
+        return McpPolicy(fps=framerate, vla=vla)
     if policy_type == "lerobot":
         if use_policy_planner:
             return LerobotInferenceWithPlanner(
@@ -281,7 +292,7 @@ def make_policy(
             camera_keys=_camera_keys(camera_keys),
             n_action_steps=n_action_steps,
         )
-    raise ValueError(f"unknown policy_type {policy_type!r}; expected 'lerobot' or 'frozen_vla'")
+    raise ValueError(f"unknown policy_type {policy_type!r}; expected 'lerobot', 'frozen_vla' or 'mcp'")
 
 
 def main(
@@ -311,6 +322,7 @@ def main(
             use_policy_planner=use_policy_planner,
             camera_keys=camera_keys,
             n_action_steps=n_action_steps,
+            framerate=framerate,
         )
     sim = Sim(
         record=record,

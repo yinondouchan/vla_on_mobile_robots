@@ -78,7 +78,7 @@ class LeRobotRecorder:
                 self.config.repo_id,
                 root=self.config.root,
                 streaming_encoding=self.config.streaming_encoding,
-                vcodec=self.config.vcodec
+                # vcodec=self.config.vcodec
             )
 
         if self.config.overwrite_root and self.config.root is not None and os.path.exists(self.config.root):
@@ -92,7 +92,7 @@ class LeRobotRecorder:
             robot_type=self.config.robot_type,
             use_videos=self.config.use_videos,
             streaming_encoding=self.config.streaming_encoding,
-            vcodec=self.config.vcodec,
+            # vcodec=self.config.vcodec,
         )
 
     @property
