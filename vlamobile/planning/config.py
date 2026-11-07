@@ -15,9 +15,9 @@ class HarnessConfig:
     # MCP server started by the sim with `--policy_type=mcp`.
     mcp_url: str = "http://127.0.0.1:8000/mcp"
 
-    # PydanticAI model strings, e.g. "openai:..." or a local OpenAI-compatible server.
+    # PydanticAI model strings. The monitor answers typed decisions, so it defaults to a decision model.
     planner_model: str = "anthropic:claude-sonnet-5-5"
-    monitor_model: str = "anthropic:claude-haiku-5-5"
+    monitor_model: str = "openai-decisions:gpt-6-luna"
 
     # Folder of Agent Skills for the planner and the monitor: one subfolder per skill, each with a `SKILL.md`.
     skills_dir: str | None = None

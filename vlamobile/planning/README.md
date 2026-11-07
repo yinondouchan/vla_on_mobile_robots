@@ -12,7 +12,7 @@ different jobs and different latency budgets:
 | Agent | Role | Model profile | Runs |
 |---|---|---|---|
 | **Planner** | Planning and execution: decompose the task, choose the next subtask, react to reports (continue, retry, replan, give up) | Strong reasoning model, extended thinking allowed | Between subtasks, while the robot is stopped |
-| **Monitor** | Monitoring and reporting: judge from camera frames whether the running subtask is still progressing, has succeeded, or has failed | Fast vision-language model | Every monitoring tick, while the robot is moving |
+| **Monitor** | Monitoring and reporting: judge from camera frames whether the running subtask is still progressing, has succeeded, or has failed | Decision model (`openai-decisions:gpt-6-luna`): typed questions over the frames, no free text | Every monitoring tick, while the robot is moving |
 
 The separation follows from the timing of the system. The VLA runs at the sim
 frame rate (30 fps) inside the MCP server and needs no LLM in the loop. The
@@ -95,9 +95,9 @@ typed.
 ## The monitoring loop
 
 The loop is plain Python inside `run_subtask`. The monitor agent has no tools:
-each tick is a single structured-output request with the frames attached as
-images. That keeps the monitor at one model round trip per tick, which is what
-makes it low latency.
+each tick is one decision request, with the frames attached as images and the
+verdict's fields as the questions. That keeps the monitor at one model round
+trip per tick, which is what makes it low latency.
 
 ```python
 async def run_subtask(ctx: RunContext[HarnessDeps], subtask: str) -> ToolReturn:
@@ -125,9 +125,9 @@ Design choices:
 
 - **Current frames plus a text history.** Like the existing in-process
   planner in `vlamobile/models/planning/`, the monitor sees only the latest
-  frames plus a short text history of its previous verdicts (progress and
-  rationale), never old images. This keeps prompt size, and therefore latency,
-  constant over a long subtask.
+  frames plus a short text history of its previous verdicts (status, progress,
+  and the scene decisions), never old images. This keeps prompt size, and
+  therefore latency, constant over a long subtask.
 - **Tick rate set by monitor latency.** The next tick starts when the previous
   verdict arrives, with a configurable minimum period. Smaller images
   (`image_size`) are the main lever for lowering latency.
@@ -139,14 +139,18 @@ Design choices:
 
 ## Data contracts
 
-All agent outputs are Pydantic models, so PydanticAI validates them and asks
-the model to retry when its output doesn't fit.
+All agent outputs are Pydantic models. The monitor's fields are the questions
+a decision model answers; the planner's output is validated and retried when it
+doesn't fit.
 
 ```python
 class MonitorVerdict(BaseModel):
+    """Decisions only: a pick-one or a 0–1 score per field, no free text."""
+
     status: Literal["running", "succeeded", "failed"]
-    progress: float = Field(ge=0, le=1)
-    rationale: str                     # one sentence, what the frames show
+    progress: float = Field(ge=0, le=1)  # how complete the subtask is
+    cube: Literal["in_gripper", "visible", "not_visible"]
+    motion: Literal["toward_target", "away_from_target", "stopped"]
 
 class SubtaskReport(BaseModel):
     subtask: str
@@ -154,7 +158,7 @@ class SubtaskReport(BaseModel):
     duration_s: float
     checks: int
     final_progress: float
-    summary: str                       # rationale of the last verdicts
+    summary: str                       # the last verdicts, as decisions
 
 class EpisodeResult(BaseModel):
     success: bool
@@ -181,9 +185,10 @@ vlamobile/planning/
 └── run.py          # CLI entry point (fire): connect, run one episode, print the result
 ```
 
-Model names are plain PydanticAI model strings in `HarnessConfig`, so either
-agent can be pointed at a hosted model or at a local OpenAI-compatible server
-(e.g. a llama.cpp VLM for the monitor) without code changes.
+Model names are plain PydanticAI model strings in `HarnessConfig`. The monitor
+defaults to `openai-decisions:gpt-6-luna`, which fills the verdict by answering
+its questions rather than writing text. Either agent can be pointed at another
+model without code changes.
 
 ## Skills
 

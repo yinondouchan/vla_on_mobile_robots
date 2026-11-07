@@ -56,27 +56,18 @@ the same subtask endlessly; when retries keep failing, change approach or give u
 MONITOR_SYSTEM_PROMPT = f"""\
 You monitor a robot while a low-level policy executes one subtask. You are given the
 subtask, a short log of your previous verdicts, and the robot's current camera views.
+Judge only the current subtask, from the visual evidence in the current frames; the log
+is context, not proof. Be conservative.
 
 <robot>
 {ROBOT_DESCRIPTION}
-</robot>
-
-<instructions>
-Judge only the current subtask, from the visual evidence in the current frames; the log
-is context, not proof. Answer with:
-- status: "succeeded" when the frames show the subtask is complete, "failed" when it
-  clearly cannot complete anymore (e.g. the cube was dropped or knocked away, the robot
-  is stuck or heading away from the target), otherwise "running". Be conservative: when
-  unsure, answer "running".
-- progress: estimated completion of the subtask from 0 (not started) to 1 (done).
-- rationale: one sentence describing what the frames show.
-</instructions>"""
+</robot>"""
 
 
 def render_monitor_prompt(subtask: str, history: list[MonitorVerdict]) -> str:
     """Text part of a monitor tick: the current subtask and the latest verdicts, without images."""
     recent = history[-MONITOR_HISTORY_LENGTH:]
     lines = [f"Current subtask: {subtask}", "Previous verdicts (oldest first):"]
-    lines += [f"- {v.status}, progress {v.progress:.2f}: {v.rationale}" for v in recent] or ["- none yet"]
+    lines += [f"- {v.describe()}" for v in recent] or ["- none yet"]
     lines.append("The images show the robot's current camera views.")
     return "\n".join(lines)

@@ -65,7 +65,7 @@ async def run_subtask(ctx: RunContext[HarnessDeps], subtask: str) -> ToolReturn:
         duration_s=round(time.monotonic() - start, 1),
         checks=len(history),
         final_progress=history[-1].progress if history else 0.0,
-        summary=" ".join(v.rationale for v in history[-3:]) or "no verdicts",
+        summary=" ".join(v.describe() for v in history[-3:]) or "no verdicts",
     )
     ctx.deps.attempts.append(report)
     obs = await robot.observe(image_size=cfg.monitor_image_size)
